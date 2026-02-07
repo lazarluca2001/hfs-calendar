@@ -131,3 +131,90 @@
                 console.error("Hiba:", e);
                 renderCalendar(parseInt(monthSelect.value));
             }
+        }
+
+        function getStatusClass(status) {
+            status = status.toLowerCase();
+            if (status.includes("igen")) return "status-igen";
+            if (status.includes("talán") || status.includes("talan")) return "status-talan";
+            if (status.includes("fizetve")) return "status-fizetve";
+            if (status.includes("igazolt")) return "status-igazolt";
+            return "";
+        }
+
+        function renderCalendar(monthIndex) {
+            calendar.innerHTML = '';
+            weekdays.forEach(day => {
+                const div = document.createElement('div');
+                div.className = 'weekday-header';
+                div.textContent = day;
+                calendar.appendChild(div);
+            });
+
+            const year = 2026;
+            let firstDay = new Date(year, monthIndex, 1).getDay();
+            firstDay = firstDay === 0 ? 6 : firstDay - 1; 
+            const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+
+            for (let i = 0; i < firstDay; i++) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'day empty';
+                calendar.appendChild(emptyDiv);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'day';
+                const aktualisNap = new Date(year, monthIndex, day);
+                aktualisNap.setHours(0,0,0,0);
+                
+                const napiEsemenyek = naptarAdatok.filter(sor => {
+                    if (!sor["Start date"] || !sor["End date"]) return false;
+                    const start = new Date(sor["Start date"].replace(/\./g, '-'));
+                    const end = new Date(sor["End date"].replace(/\./g, '-'));
+                    start.setHours(0,0,0,0);
+                    end.setHours(0,0,0,0);
+                    return aktualisNap >= start && aktualisNap <= end;
+                });
+
+                let html = `<span class="day-number">${day}</span>`;
+                
+                napiEsemenyek.forEach(e => {
+                    const nevek = ["Csongi", "Merci", "Mózes", "Luca", "Zoli"];
+                    const elfogadottStatuszok = ["igazolt", "igen", "talán", "fizetve"];
+                    
+                    let tagsHTML = "";
+                    nevek.forEach(nev => {
+                        const s = (e[nev] || "").toLowerCase();
+                        if (elfogadottStatuszok.includes(s)) {
+                            tagsHTML += `<span class="person-tag ${getStatusClass(s)}" title="Státusz: ${s.toUpperCase()}">${nev}</span>`;
+                        }
+                    });
+
+                    if (tagsHTML !== "") {
+                        html += `
+                        <div class="event-slot">
+                            <span class="event-title">${e.Event || "Verseny"}</span>
+                            <span class="event-loc">📍 ${e.Location || "TBA"}</span>
+                            <div class="attendees">${tagsHTML}</div>
+                        </div>`;
+                    }
+                });
+
+                dayDiv.innerHTML = html;
+                calendar.appendChild(dayDiv);
+            }
+        }
+
+        months.forEach((m, i) => {
+            let opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = m;
+            monthSelect.appendChild(opt);
+        });
+
+        monthSelect.addEventListener('change', (e) => renderCalendar(parseInt(e.target.value)));
+        adatokBetoltese();
+    </script>
+</body>
+</html>
