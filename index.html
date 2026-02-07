@@ -1,104 +1,133 @@
-<script>
-    const monthSelect = document.getElementById('monthSelect');
-    const calendar = document.getElementById('calendar');
-    const months = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
-    const weekdays = ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"];
-
-    // IDE MÁSOLD BE A GOOGLE TÁBLÁZATBÓL KAPOTT CSV LINKEKET
-    const urls = {
-        esemenyek: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=338581218&single=true&output=csv',
-        szulinapok: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=689836805&single=true&output=csv'
-    };
-
-    let naptarAdatok = [];
-
-    // CSV szöveg átalakítása tömbbé
-    function csvToJSON(csv) {
-        const lines = csv.split('\n');
-        const result = [];
-        const headers = lines[0].split(',');
-
-        for (let i = 1; i < lines.length; i++) {
-            const obj = {};
-            const currentline = lines[i].split(',');
-            headers.forEach((h, index) => {
-                obj[h.trim()] = currentline[index]?.trim();
-            });
-            result.push(obj);
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HFS European Tour 2026</title>
+    <style>
+        :root {
+            --hfs-red: #800000;
+            --border-color: #ddd;
+            --bg-light: #f9f9f9;
+            --status-igen: #4CAF50;
+            --status-talan: #FF9800;
+            --status-fizetve: #2196F3;
+            --status-igazolt: #9C27B0;
         }
-        return result;
-    }
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; background-color: #fff; }
+        h1 { color: var(--hfs-red); border-bottom: 3px solid var(--hfs-red); padding-bottom: 10px; margin-bottom: 20px; }
+        
+        .controls { margin-bottom: 20px; background: var(--bg-light); padding: 15px; border-radius: 8px; }
+        select { padding: 10px; font-size: 16px; border: 1px solid var(--hfs-red); border-radius: 4px; cursor: pointer; }
 
-    async function adatokBetoltese() {
-        try {
-            // Mindkét táblázat letöltése egyszerre
-            const [resEsemeny, resSzulinap] = await Promise.all([
-                fetch(urls.esemenyek).then(r => r.text()),
-                fetch(urls.szulinapok).then(r => r.text())
-            ]);
-
-            const esemenyLista = csvToJSON(resEsemeny);
-            const szulinapLista = csvToJSON(resSzulinap);
-
-            // Itt összefésüljük az adatokat egy közös listába
-            naptarAdatok = [...esemenyLista, ...szulinapLista];
-            
-            renderCalendar(parseInt(monthSelect.value));
-        } catch (e) {
-            console.error("Hiba az adatok betöltésekor. Ellenőrizd a linkeket!", e);
-            renderCalendar(parseInt(monthSelect.value)); // Hiba esetén is rajzolja ki az üres naptárat
+        .calendar-grid { 
+            display: grid; 
+            grid-template-columns: repeat(7, 1fr); 
+            background-color: var(--border-color);
+            border: 1px solid var(--border-color);
+            gap: 1px;
         }
-    }
-
-    function renderCalendar(monthIndex) {
-        calendar.innerHTML = '';
-        weekdays.forEach(day => {
-            const div = document.createElement('div');
-            div.className = 'weekday-header';
-            div.textContent = day;
-            calendar.appendChild(div);
-        });
-
-        const year = 2026;
-        let firstDay = new Date(year, monthIndex, 1).getDay();
-        firstDay = firstDay === 0 ? 6 : firstDay - 1; 
-        const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-
-        for (let i = 0; i < firstDay; i++) {
-            calendar.appendChild(Object.assign(document.createElement('div'), {className: 'day empty'}));
+        .weekday-header { 
+            background: var(--hfs-red); 
+            color: white;
+            font-weight: bold; 
+            text-align: center; 
+            padding: 12px; 
         }
-
-        for (let day = 1; day <= daysInMonth; day++) {
-            const dayDiv = document.createElement('div');
-            dayDiv.className = 'day';
-            
-            // Megkeressük az adott naphoz tartozó adatokat a táblázatból
-            // Feltételezzük, hogy a táblázatban van egy 'Datum' oszlop ÉÉÉÉ-HH-NN formátumban
-            const maiDatum = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const napiInfok = naptarAdatok.filter(sor => sor.Datum === maiDatum);
-
-            let infoHTML = '';
-            napiInfok.forEach(info => {
-                // Ha van 'Esemeny' vagy 'Nev' oszlop, megjelenítjük
-                const szoveg = info.Esemeny || info.Nev || "";
-                infoHTML += `<div class="event-slot">${szoveg}</div>`;
-            });
-
-            dayDiv.innerHTML = `<div class="day-number">${day}</div>${infoHTML}`;
-            calendar.appendChild(dayDiv);
+        .day { 
+            background: white; 
+            min-height: 140px; 
+            padding: 8px; 
+            position: relative;
         }
-    }
+        .day-number { font-weight: bold; color: #333; margin-bottom: 8px; display: block; }
+        .empty { background: var(--bg-light); }
+        
+        .event-slot { 
+            background-color: #fffefb; 
+            border-left: 4px solid var(--hfs-red); 
+            padding: 6px; 
+            margin-bottom: 8px; 
+            border-radius: 3px;
+            font-size: 0.85rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .event-title { font-weight: bold; color: var(--hfs-red); display: block; margin-bottom: 2px; }
+        .event-loc { color: #666; font-size: 0.8em; display: block; margin-bottom: 4px; }
+        
+        .attendees { 
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            border-top: 1px solid #eee; 
+            padding-top: 4px;
+            margin-top: 4px;
+        }
+        .person-tag {
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            background: #eee;
+            cursor: help;
+            white-space: nowrap;
+        }
+        /* Státusz színek */
+        .status-igen { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #4CAF50; }
+        .status-talan { background-color: #fff3e0; color: #ef6c00; border: 1px solid #FF9800; }
+        .status-fizetve { background-color: #e3f2fd; color: #1565c0; border: 1px solid #2196F3; }
+        .status-igazolt { background-color: #f3e5f5; color: #7b1fa2; border: 1px solid #9C27B0; }
+    </style>
+</head>
+<body>
 
-    // Inicializálás
-    months.forEach((month, index) => {
-        let opt = document.createElement('option');
-        opt.value = index;
-        opt.textContent = month;
-        monthSelect.appendChild(opt);
-    });
-
-    monthSelect.addEventListener('change', (e) => renderCalendar(parseInt(e.target.value)));
+    <h1>HFS | European Tour 2026</h1>
     
-    // Indításkor adatok betöltése
-    adatokBetoltese();
-</script>
+    <div class="controls">
+        <label for="monthSelect"><strong>Naptár nézet:</strong> </label>
+        <select id="monthSelect"></select>
+    </div>
+
+    <div class="calendar-grid" id="calendar"></div>
+
+    <script>
+        const monthSelect = document.getElementById('monthSelect');
+        const calendar = document.getElementById('calendar');
+        const months = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
+        const weekdays = ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"];
+
+        // IDE ILLESZD BE A GOOGLE TÁBLÁZATBÓL KAPOTT CSV LINKET
+        const urls = {
+            esemenyek: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=338581218&single=true&output=csv'
+        };
+
+        let naptarAdatok = [];
+
+        function csvToJSON(csv) {
+            const lines = csv.split('\n');
+            if (lines.length === 0) return [];
+            const result = [];
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i]) continue;
+                const obj = {};
+                const currentline = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                headers.forEach((h, index) => {
+                    let val = currentline[index] ? currentline[index].trim().replace(/"/g, '') : "";
+                    obj[h] = val;
+                });
+                result.push(obj);
+            }
+            return result;
+        }
+
+        async function adatokBetoltese() {
+            try {
+                const response = await fetch(urls.esemenyek);
+                const csvText = await response.text();
+                naptarAdatok = csvToJSON(csvText);
+                renderCalendar(parseInt(monthSelect.value));
+            } catch (e) {
+                console.error("Hiba:", e);
+                renderCalendar(parseInt(monthSelect.value));
+            }
