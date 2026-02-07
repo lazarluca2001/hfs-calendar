@@ -5,11 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HFS European Tour 2026</title>
     <style>
-        :root { 
-            --hfs-red: #800000; 
-            --status-biztos: #4CAF50; 
-            --status-talan: #FF9800;
-        }
+        :root { --hfs-red: #800000; --status-biztos: #4CAF50; --status-talan: #FF9800; }
         body { font-family: 'Segoe UI', sans-serif; margin: 20px; background: #f4f4f4; }
         .main-layout { display: flex; gap: 20px; max-width: 1750px; margin: 0 auto; align-items: flex-start; }
         .calendar-section { flex: 3; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -47,9 +43,9 @@
         <h2>🏆 Dicsőségfal</h2>
         <p style="font-size: 0.8em; color: #999; text-align: center;">(Adatok a Versenyeredmények fülről)</p>
         <h3>✨ A hónap táncosai</h3>
-        <div id="monthlyLeaderboard">...</div>
+        <div id="monthlyLeaderboard">Nincs adat ebben a hónapban</div>
         <h3>👑 Összesített ranglista</h3>
-        <div id="yearlyLeaderboard">...</div>
+        <div id="yearlyLeaderboard">Betöltés...</div>
     </div>
 </div>
 
@@ -73,7 +69,6 @@
             const [resW, resE] = await Promise.all([fetch(wishlistUrl), fetch(eredmenyekUrl)]);
             const [csvW, csvE] = await Promise.all([resW.text(), resE.text()]);
             
-            // Wishlist (Naptár)
             const rowsW = csvW.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
             const headersW = rowsW[3];
             for(let i = 4; i < rowsW.length; i++) {
@@ -81,7 +76,6 @@
                 if(obj.Event) allWishlistEvents.push(obj);
             }
 
-            // Versenyeredmények (Pontok)
             const rowsE = csvE.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
             const headersE = rowsE[4];
             for(let i = 5; i < rowsE.length; i++) {
@@ -94,6 +88,14 @@
         } catch (e) { console.error(e); }
     }
 
+    // Segédfüggvény a dátumok kinyeréséhez a naptári hónap szűréséhez
+    function getMonthFromSheetDate(dStr) {
+        if(!dStr) return null;
+        const p = dStr.split('.');
+        if(p.length >= 2) return parseInt(p[1]) - 1; // 0-indexed hónap
+        return null;
+    }
+
     function calculateStats(monthIndex = null) {
         let stats = {};
         Object.keys(resztvevokMap).forEach(k => stats[k] = { gold: 0, silver: 0, bronze: 0, points: 0, finals: 0 });
@@ -102,14 +104,10 @@
             const name = r.Name;
             if(!stats[name]) return;
 
-            // Dátum szűrés a havi ranglistához
+            // Havi szűrés: Megnézzük a Versenyeredmények fül dátumát
             if (monthIndex !== null) {
-                const dateParts = r.Date ? r.Date.split('.') : [];
-                if (dateParts.length >= 2) {
-                    const m = parseInt(dateParts[1]) - 1;
-                    const y = parseInt(dateParts[0]);
-                    if (m !== monthIndex || y !== 2026) return;
-                } else return;
+                const eventMonth = getMonthFromSheetDate(r.Date);
+                if (eventMonth !== monthIndex) return;
             }
 
             const place = parseInt(r.Final);
@@ -124,9 +122,16 @@
 
     function renderBoard(elementId, stats) {
         const board = document.getElementById(elementId);
-        board.innerHTML = Object.keys(resztvevokMap)
-            .sort((a,b) => stats[b].points - stats[a].points || stats[b].gold - stats[a].gold)
-            .map(k => `
+        const sortedKeys = Object.keys(resztvevokMap).sort((a,b) => stats[b].points - stats[a].points || stats[b].gold - stats[a].gold);
+        
+        // Ellenőrizzük, van-e egyáltalán adat (pontszám > 0)
+        const hasData = sortedKeys.some(k => stats[k].points > 0 || stats[k].finals > 0);
+        if(!hasData && elementId === 'monthlyLeaderboard') {
+            board.innerHTML = "<p style='text-align:center; color:#999; font-size:0.8em;'>Ebben a hónapban még nincs rögzített eredmény.</p>";
+            return;
+        }
+
+        board.innerHTML = sortedKeys.map(k => `
                 <div class="leaderboard-item">
                     <div style="font-size: 1.4em">${resztvevokMap[k].emoji}</div>
                     <div class="leader-info">
@@ -160,8 +165,8 @@
                 Object.entries(resztvevokMap).forEach(([fullName, info]) => {
                     const status = (e[info.alias] || "").toLowerCase();
                     if (status.includes("igen") || status.includes("talan")) {
-                        // Megnézzük, van-e eredménye ennek az embernek ezen a versenyen
-                        const res = pastResults.find(r => r.Name === fullName && r.Event === e.Event);
+                        // KERESÉS NÉV ALAPJÁN (Dátumtól függetlenül)
+                        const res = pastResults.find(r => r.Name === fullName && r.Event.trim().toLowerCase() === e.Event.trim().toLowerCase());
                         const p = res ? parseInt(res.Final) : null;
                         tags += `<div class="person-tag ${status.includes("talan") ? 'status-talan' : 'status-biztos'}">
                             ${info.emoji} ${info.alias} ${p && p <= 3 ? '🥇🥈🥉'[p-1] : p ? '🏅' : ''}
