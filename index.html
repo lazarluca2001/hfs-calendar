@@ -38,7 +38,6 @@
         .day-number { font-weight: bold; color: #555; margin-bottom: 5px; display: block; }
         .today { background: #fffde7 !important; border: 2px solid #fbc02d !important; }
 
-        /* Minden event kártya HFS bordó háttérrel */
         .event-card { 
             background-color: var(--hfs-red);
             padding: 8px; 
@@ -75,7 +74,6 @@
             border-left: 3px solid #ccc;
         }
         
-        /* Státusz színek a név-címke bal szélén */
         .status-biztos { border-left-color: var(--status-biztos); }
         .status-talan { border-left-color: var(--status-talan); }
 
@@ -96,29 +94,17 @@
 
 <script>
     const wishlistUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=338581218&single=true&output=csv';
-    const eredmenyekUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=1410406652&single=true&output=csv';
 
     const resztvevokMap = {
-        "Csongi": { emoji: "🌈", fullName: "Ferenczi Csongor" },
-        "Merci": { emoji: "🦆", fullName: "Angyal Mercédesz" },
-        "Mózes": { emoji: "🦄", fullName: "Bende Márton" },
-        "Luca":  { emoji: "🐶", fullName: "Lázár Luca" },
-        "Zoli":  { emoji: "🕺", fullName: "Dominguez Zoltán" }
+        "Csongi": { emoji: "🌈" },
+        "Merci": { emoji: "🦆" },
+        "Mózes": { emoji: "🦄" },
+        "Luca":  { emoji: "🐶" },
+        "Zoli":  { emoji: "🕺" }
     };
 
     const validStatuses = ["igen", "talán", "talan", "fizetve", "igazolt"];
-
     let allWishlistEvents = [];
-    let pastResults = [];
-
-    function getAliasByName(name) {
-        if (!name) return null;
-        const normalized = name.trim().toLowerCase();
-        for (const [alias, data] of Object.entries(resztvevokMap)) {
-            if (normalized.includes(alias.toLowerCase()) || normalized.includes(data.fullName.toLowerCase())) return alias;
-        }
-        return null;
-    }
 
     function parseHungarianDate(dStr) {
         if(!dStr) return null;
@@ -129,48 +115,44 @@
 
     async function init() {
         try {
-            const [resW, resE] = await Promise.all([fetch(wishlistUrl), fetch(eredmenyekUrl)]);
-            const csvW = await resW.text(), csvE = await resE.text();
+            const response = await fetch(wishlistUrl);
+            const csv = await response.text();
             
-            const rowsW = csvW.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
-            const headersW = rowsW[3];
+            const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
+            const headers = rows[3]; // A fejléc a 4. sorban van
+            
             allWishlistEvents = [];
-            
-            for(let i = 4; i < rowsW.length; i++) {
+            for(let i = 4; i < rows.length; i++) {
                 let obj = {}; 
-                if(headersW) headersW.forEach((h, idx) => { if(h) obj[h] = rowsW[i][idx]; });
+                if(headers) headers.forEach((h, idx) => { if(h) obj[h] = rows[i][idx]; });
                 
                 if(obj.Event) {
+                    // Csak azokat az eseményeket tartjuk meg, amikre van releváns jelentkező
                     const hasParticipants = Object.keys(resztvevokMap).some(alias => {
                         const status = (obj[alias] || "").toLowerCase();
                         return validStatuses.some(s => status.includes(s));
                     });
-                    if (hasParticipants) allWishlistEvents.push(obj);
+                    
+                    if (hasParticipants) {
+                        allWishlistEvents.push(obj);
+                    }
                 }
-            }
-
-            const rowsE = csvE.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
-            const headersE = rowsE[3];
-            const findIdx = (names) => headersE.findIndex(h => names.some(n => h.toLowerCase().includes(n.toLowerCase())));
-            const idxName = findIdx(['name', 'név']), idxEvent = findIdx(['event', 'esemény']), idxFinal = findIdx(['final', 'helyezés']);
-
-            pastResults = [];
-            for(let i = 4; i < rowsE.length; i++) {
-                const r = rowsE[i];
-                const alias = getAliasByName(r[idxName]);
-                if (alias) pastResults.push({ Alias: alias, Event: r[idxEvent] || "", Final: parseInt(r[idxFinal]) || 0 });
             }
 
             setupMonthSelect();
             render(new Date().getMonth());
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+            console.error("Hiba az adatok betöltésekor:", e); 
+        }
     }
 
     function render(monthIndex) {
         const cal = document.getElementById('calendar'); 
         cal.innerHTML = '';
         const year = 2026;
-        ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"].forEach(d => cal.innerHTML += `<div class="weekday">${d}</div>`);
+        
+        const days = ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"];
+        days.forEach(d => cal.innerHTML += `<div class="weekday">${d}</div>`);
         
         const firstDay = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
         const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
@@ -178,24 +160,25 @@
         for(let i = 0; i < firstDay; i++) cal.innerHTML += `<div class="day empty"></div>`;
         
         for(let d = 1; d <= daysInMonth; d++) {
-            const current = new Date(year, monthIndex, d); current.setHours(0,0,0,0);
-            const daily = allWishlistEvents.filter(e => {
-                const s = parseHungarianDate(e["Start date"]), end = parseHungarianDate(e["End date"]);
-                return s && end && current >= s && current <= end;
+            const current = new Date(year, monthIndex, d); 
+            current.setHours(0,0,0,0);
+            
+            const dailyEvents = allWishlistEvents.filter(e => {
+                const start = parseHungarianDate(e["Start date"]);
+                const end = parseHungarianDate(e["End date"]);
+                return start && end && current >= start && current <= end;
             });
 
-            let isToday = current.toDateString() === new Date().toDateString();
+            const isToday = current.toDateString() === new Date().toDateString();
             let html = `<div class="day ${isToday ? 'today' : ''}"><span class="day-number">${d}</span>`;
             
-            daily.forEach(e => {
+            dailyEvents.forEach(e => {
                 let tags = "";
                 Object.entries(resztvevokMap).forEach(([alias, info]) => {
                     const status = (e[alias] || "").toLowerCase();
                     if (validStatuses.some(s => status.includes(s))) {
-                        const res = pastResults.find(r => r.Alias === alias && r.Event.trim().toLowerCase() === e.Event.trim().toLowerCase());
-                        let medal = (res?.Final === 1) ? "🥇" : (res?.Final === 2) ? "🥈" : (res?.Final === 3) ? "🥉" : "";
                         const isTalan = status.includes("talán") || status.includes("talan");
-                        tags += `<div class="person-tag ${isTalan ? 'status-talan' : 'status-biztos'}">${info.emoji} ${alias}${medal}</div>`;
+                        tags += `<div class="person-tag ${isTalan ? 'status-talan' : 'status-biztos'}">${info.emoji} ${alias}</div>`;
                     }
                 });
 
@@ -213,7 +196,9 @@
         const sel = document.getElementById('monthSelect');
         const mNames = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
         mNames.forEach((m, i) => {
-            const opt = document.createElement('option'); opt.value = i; opt.textContent = m;
+            const opt = document.createElement('option'); 
+            opt.value = i; 
+            opt.textContent = m;
             if(i === new Date().getMonth()) opt.selected = true;
             sel.appendChild(opt);
         });
