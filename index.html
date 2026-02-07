@@ -5,103 +5,98 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HFS European Tour 2026</title>
     <style>
-        :root { 
-            --hfs-red: #800000; 
-            --status-biztos: #4CAF50; 
-            --status-talan: #FF9800;
-        }
+        :root { --hfs-red: #800000; --status-biztos: #4CAF50; --status-talan: #FF9800; }
         body { font-family: 'Segoe UI', sans-serif; margin: 20px; background: #f4f4f4; }
-        
         .main-layout { display: flex; gap: 20px; max-width: 1650px; margin: 0 auto; align-items: flex-start; }
         .calendar-section { flex: 3; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        
-        /* Dicsőségfal stílusa */
         .sidebar { flex: 1.2; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); position: sticky; top: 20px; }
-
         h1, h2 { color: var(--hfs-red); text-align: center; border-bottom: 2px solid var(--hfs-red); padding-bottom: 10px; margin-top: 0; }
         h3 { font-size: 1.1em; color: #555; border-left: 4px solid var(--hfs-red); padding-left: 10px; margin-top: 25px; }
-        
         .controls { margin-bottom: 20px; text-align: center; }
         select { padding: 10px 20px; font-size: 16px; border: 2px solid var(--hfs-red); border-radius: 8px; cursor: pointer; font-weight: bold; }
-        
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ddd; border: 1px solid #ddd; }
         .weekday { background: var(--hfs-red); color: white; padding: 10px; text-align: center; font-weight: bold; font-size: 0.9em; }
         .day { background: white; min-height: 140px; padding: 8px; position: relative; }
         .day-number { font-weight: bold; color: #555; margin-bottom: 8px; display: block; }
         .today { background: #fffde7 !important; border: 2px solid #fbc02d !important; }
-
         .event-card { border-left: 4px solid var(--hfs-red); padding: 5px; margin-bottom: 8px; background: #fffcfc; border-radius: 4px; font-size: 0.8em; }
-        .event-name { font-weight: bold; display: block; margin-bottom: 4px; }
-        
         .person-tag { padding: 3px 5px; margin-top: 3px; border-radius: 4px; font-size: 0.85em; border-left: 3px solid #ccc; background: #f8f9fa; }
         .status-biztos { border-left-color: var(--status-biztos); }
         .status-talan { border-left-color: var(--status-talan); }
-
-        /* Leaderboard elemek */
         .leaderboard-item { display: flex; align-items: center; padding: 8px 5px; border-bottom: 1px solid #eee; gap: 10px; }
         .leader-info { flex-grow: 1; }
         .leader-name { font-weight: bold; display: block; font-size: 0.95em; }
         .leader-stats { font-size: 0.8em; color: #666; }
         .leader-medals { font-size: 1.1em; white-space: nowrap; }
-
         .final-badge { background: var(--hfs-red); color: white; padding: 1px 4px; border-radius: 3px; font-size: 0.7em; margin-left: 4px; vertical-align: middle; }
     </style>
 </head>
 <body>
-
 <div class="main-layout">
     <div class="calendar-section">
         <h1>HFS | European Tour 2026</h1>
         <div class="controls"><select id="monthSelect"></select></div>
         <div id="calendar" class="calendar-grid"></div>
     </div>
-
     <div class="sidebar">
         <h2>🏆 Dicsőségfal</h2>
-        
         <h3>✨ A hónap táncosai</h3>
-        <div id="monthlyLeaderboard">Válassz hónapot...</div>
-
+        <div id="monthlyLeaderboard">Várj...</div>
         <h3>👑 Összesített ranglista</h3>
         <div id="yearlyLeaderboard">Számolás...</div>
     </div>
 </div>
 
 <script>
-    const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=338581218&single=true&output=csv';
+    // Linkek a két különböző fülhöz
+    const wishlistUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=338581218&single=true&output=csv';
+    const eredmenyekUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=1410406652&single=true&output=csv';
 
     const resztvevokMap = {
-        "Csongi": { nev: "Ferenczi Csongor", emoji: "🌈" },
-        "Merci": { nev: "Angyal Mercédesz", emoji: "🦆" },
-        "Mózes": { nev: "Bende Márton", emoji: "🦄" },
-        "Luca": { nev: "Lázár Luca", emoji: "🐶" },
-        "Zoli": { nev: "Dominguez Zoltán", emoji: "🕺" }
+        "Lázár Luca": { nev: "Lázár Luca", emoji: "🐶", alias: "Luca" },
+        "Angyal Mercédesz": { nev: "Angyal Mercédesz", emoji: "🦆", alias: "Merci" },
+        "Ferenczi Csongor": { nev: "Ferenczi Csongor", emoji: "🌈", alias: "Csongi" },
+        "Bende Márton": { nev: "Bende Márton", emoji: "🦄", alias: "Mózes" },
+        "Dominguez Zoltán": { nev: "Dominguez Zoltán", emoji: "🕺", alias: "Zoli" }
     };
 
-    let allEvents = [];
-    const months = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
+    let allWishlistEvents = [];
+    let pastResults = [];
 
     async function init() {
         try {
-            const response = await fetch(url);
-            const csvText = await response.text();
-            const rows = csvText.split('\n').map(row => row.split(',').map(c => c.trim().replace(/"/g, '')));
-            const headers = rows[3];
-            allEvents = [];
-            for(let i = 4; i < rows.length; i++) {
+            // 1. Wishlist (2026 tervek) beolvasása
+            const resW = await fetch(wishlistUrl);
+            const csvW = await resW.text();
+            const rowsW = csvW.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
+            const headersW = rowsW[3];
+            for(let i = 4; i < rowsW.length; i++) {
                 let obj = {};
-                headers.forEach((h, idx) => { if(h) obj[h] = rows[i][idx]; });
-                if(obj.Event) allEvents.push(obj);
+                headersW.forEach((h, idx) => { if(h) obj[h] = rowsW[i][idx]; });
+                if(obj.Event) allWishlistEvents.push(obj);
             }
+
+            // 2. Versenyeredmények (Múltbéli adatok) beolvasása
+            const resE = await fetch(eredmenyekUrl);
+            const csvE = await resE.text();
+            const rowsE = csvE.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
+            // Itt a fejléc az 5. sorban van (index 4)
+            const headersE = rowsE[4];
+            for(let i = 5; i < rowsE.length; i++) {
+                let obj = {};
+                headersE.forEach((h, idx) => { if(h) obj[h] = rowsE[i][idx]; });
+                if(obj.Event) pastResults.push(obj);
+            }
+
             setupMonthSelect();
             render(new Date().getMonth());
         } catch (e) { console.error(e); }
     }
 
-    function parseResult(text) {
-        if (!text) return null;
+    function parseStatusResult(text) {
+        if (!text) return { place: null, points: 0, isFinal: false };
         const lowText = text.toLowerCase();
-        let res = { place: null, isFinal: false, points: 0 };
+        let res = { place: null, points: 0, isFinal: false };
         const pm = text.match(/([1-5])\s*\.?\s*hely/i);
         if (pm) res.place = parseInt(pm[1]);
         else if (lowText.includes("final")) res.isFinal = true;
@@ -110,26 +105,53 @@
         return res;
     }
 
-    function calculateStats(eventList) {
+    function calculateStats(monthIndex = null) {
         let stats = {};
         Object.keys(resztvevokMap).forEach(k => stats[k] = { gold: 0, silver: 0, bronze: 0, points: 0, finals: 0 });
 
-        eventList.forEach(e => {
-            Object.keys(resztvevokMap).forEach(k => {
-                const r = parseResult(e[k]);
-                if (r) {
-                    if (r.place === 1) stats[k].gold++;
-                    if (r.place === 2) stats[k].silver++;
-                    if (r.place === 3) stats[k].bronze++;
-                    if (r.isFinal || r.place) stats[k].finals++;
-                    stats[k].points += r.points;
+        // Összesített mód (null monthIndex) - Beleszámítjuk a múltat is
+        if (monthIndex === null) {
+            pastResults.forEach(r => {
+                const name = r.Name;
+                if(stats[name]) {
+                    const place = parseInt(r.Final);
+                    if(place === 1) stats[name].gold++;
+                    else if(place === 2) stats[name].silver++;
+                    else if(place === 3) stats[name].bronze++;
+                    if(place > 0 && place <= 5) stats[name].finals++;
+                    stats[name].points += parseInt(r.Point || 0);
+                }
+            });
+        }
+
+        // 2026-os tervek / eredmények hozzáadása
+        allWishlistEvents.forEach(e => {
+            const eventDate = new Date(e["Start date"].replace(/\./g, '/'));
+            if (monthIndex !== null && eventDate.getMonth() !== monthIndex) return;
+
+            Object.entries(resztvevokMap).forEach(([fullName, info]) => {
+                const status = e[info.alias];
+                if (status) {
+                    const r = parseStatusResult(status);
+                    if (r.place === 1) stats[fullName].gold++;
+                    if (r.place === 2) stats[fullName].silver++;
+                    if (r.place === 3) stats[fullName].bronze++;
+                    if (r.place || r.isFinal) stats[fullName].finals++;
+                    stats[fullName].points += r.points;
                 }
             });
         });
         return stats;
     }
 
-    function generateLeaderboardHTML(stats) {
+    function updateLeaderboards(monthIndex) {
+        const yearlyStats = calculateStats(null);
+        document.getElementById('yearlyLeaderboard').innerHTML = renderBoard(yearlyStats);
+        const monthlyStats = calculateStats(monthIndex);
+        document.getElementById('monthlyLeaderboard').innerHTML = renderBoard(monthlyStats);
+    }
+
+    function renderBoard(stats) {
         return Object.keys(resztvevokMap)
             .sort((a,b) => stats[b].points - stats[a].points || stats[b].gold - stats[a].gold)
             .map(k => `
@@ -146,50 +168,27 @@
             `).join('');
     }
 
-    function updateLeaderboards(monthIndex) {
-        // Összesített
-        const yearlyStats = calculateStats(allEvents);
-        document.getElementById('yearlyLeaderboard').innerHTML = generateLeaderboardHTML(yearlyStats);
-
-        // Havi
-        const monthlyEvents = allEvents.filter(e => {
-            const start = new Date(e["Start date"].replace(/\./g, '/'));
-            return start.getMonth() === monthIndex;
-        });
-        const monthlyStats = calculateStats(monthlyEvents);
-        document.getElementById('monthlyLeaderboard').innerHTML = generateLeaderboardHTML(monthlyStats);
-    }
-
     function render(monthIndex) {
         const cal = document.getElementById('calendar');
         cal.innerHTML = '';
         ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"].forEach(d => cal.innerHTML += `<div class="weekday">${d}</div>`);
-        const year = 2026;
-        const firstDay = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
-        const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-        const today = new Date();
+        const year = 2026, firstDay = (new Date(year, monthIndex, 1).getDay() + 6) % 7, daysInMonth = new Date(year, monthIndex + 1, 0).getDate(), today = new Date();
         for(let i = 0; i < firstDay; i++) cal.innerHTML += `<div class="day empty"></div>`;
         for(let d = 1; d <= daysInMonth; d++) {
-            const current = new Date(year, monthIndex, d);
-            current.setHours(0,0,0,0);
-            const isToday = current.toDateString() === today.toDateString();
-            const daily = allEvents.filter(e => {
-                const start = new Date(e["Start date"].replace(/\./g, '/'));
-                const end = new Date(e["End date"].replace(/\./g, '/'));
-                return current >= start && current <= end;
+            const current = new Date(year, monthIndex, d); current.setHours(0,0,0,0);
+            const daily = allWishlistEvents.filter(e => {
+                const s = new Date(e["Start date"].replace(/\./g, '/')), end = new Date(e["End date"].replace(/\./g, '/'));
+                return current >= s && current <= end;
             });
-            let html = `<div class="day ${isToday ? 'today' : ''}"><span class="day-number">${d}</span>`;
+            let html = `<div class="day ${current.toDateString() === today.toDateString() ? 'today' : ''}"><span class="day-number">${d}</span>`;
             daily.forEach(e => {
                 let tags = "";
-                Object.keys(resztvevokMap).forEach(k => {
-                    const raw = e[k];
-                    if (raw && (raw.toLowerCase().includes("igen") || raw.toLowerCase().includes("talan") || raw.toLowerCase().includes("igazolt"))) {
-                        const r = parseResult(raw);
-                        const isTalan = raw.toLowerCase().includes("talan");
-                        tags += `<div class="person-tag ${isTalan ? 'status-talan' : 'status-biztos'}">
-                            ${resztvevokMap[k].emoji} ${k}
-                            ${r.place ? `<span style="font-size:1.1em">${r.place==1?'🥇':r.place==2?'🥈':r.place==3?'🥉':'🏅'}</span>` : ''}
-                            ${r.isFinal ? `<span class="final-badge">F</span>` : ''}
+                Object.entries(resztvevokMap).forEach(([fullName, info]) => {
+                    const raw = e[info.alias];
+                    if (raw && (raw.toLowerCase().includes("igen") || raw.toLowerCase().includes("talan"))) {
+                        const r = parseStatusResult(raw);
+                        tags += `<div class="person-tag ${raw.toLowerCase().includes("talan") ? 'status-talan' : 'status-biztos'}">
+                            ${info.emoji} ${info.alias} ${r.place ? '🥇🥈🥉'[r.place-1] || '🏅' : ''} ${r.isFinal ? '<span class="final-badge">F</span>' : ''}
                         </div>`;
                     }
                 });
@@ -202,9 +201,8 @@
 
     function setupMonthSelect() {
         const sel = document.getElementById('monthSelect');
-        months.forEach((m, i) => {
-            const opt = document.createElement('option');
-            opt.value = i; opt.textContent = m;
+        ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"].forEach((m, i) => {
+            const opt = document.createElement('option'); opt.value = i; opt.textContent = m;
             if(i === new Date().getMonth()) opt.selected = true;
             sel.appendChild(opt);
         });
