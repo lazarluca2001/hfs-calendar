@@ -2,37 +2,113 @@
 <html lang="hu">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HFS Calendar 2026</title>
     <style>
-        body { font-family: Arial, sans-serif; }
+        :root {
+            --border-color: #ccc;
+            --header-bg: #2c3e50;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; }
+        h1 { color: #800000; border-bottom: 2px solid #800000; padding-bottom: 10px; }
+        
+        .controls { margin-bottom: 20px; }
+        select { padding: 8px; font-size: 16px; border-radius: 4px; }
+
         .calendar-grid { 
             display: grid; 
             grid-template-columns: repeat(7, 1fr); 
-            gap: 2px; 
-            background-color: #ddd;
+            background-color: var(--border-color);
+            border: 1px solid var(--border-color);
+            gap: 1px;
+        }
+        .weekday-header { 
+            background: #eee; 
+            font-weight: bold; 
+            text-align: center; 
+            padding: 10px; 
         }
         .day { 
             background: white; 
-            min-height: 100px; 
-            padding: 5px; 
-            border: 1px solid #eee;
+            min-height: 120px; 
+            padding: 10px; 
+            position: relative;
         }
-        .header { font-weight: bold; background: #f4f4f4; text-align: center; padding: 10px; }
+        .day-number { font-weight: bold; color: #333; }
+        .empty { background: #f9f9f9; }
+        
+        /* Extra sorok a Google Táblázat mintájára */
+        .event-slot { font-size: 0.8em; color: #666; margin-top: 5px; border-top: 1px dashed #eee; }
     </style>
 </head>
 <body>
+
     <h1>HFS | European Tour 2026</h1>
-    <select id="monthSelect">
-        <option value="0">Január</option>
-        <option value="1">Február</option>
-        <option value="2">Március</option>
-        </select>
+    
+    <div class="controls">
+        <label for="monthSelect">Válassz hónapot: </label>
+        <select id="monthSelect"></select>
+    </div>
 
     <div class="calendar-grid" id="calendar">
         </div>
 
     <script>
-        // Ide jön majd a logika, ami kiszámolja a napokat
+        const monthSelect = document.getElementById('monthSelect');
+        const calendar = document.getElementById('calendar');
+        const months = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
+        const weekdays = ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"];
+
+        // Hónapválasztó feltöltése
+        months.forEach((month, index) => {
+            let opt = document.createElement('option');
+            opt.value = index;
+            opt.textContent = month;
+            monthSelect.appendChild(opt);
+        });
+
+        function renderCalendar(monthIndex) {
+            calendar.innerHTML = '';
+            
+            // Fejlécek (Hétfő-Vasárnap)
+            weekdays.forEach(day => {
+                const div = document.createElement('div');
+                div.className = 'weekday-header';
+                div.textContent = day;
+                calendar.appendChild(div);
+            });
+
+            const year = 2026;
+            // Első nap indexe (0 = vasárnap, átalakítjuk hétfő = 0-ra)
+            let firstDay = new Date(year, monthIndex, 1).getDay();
+            firstDay = firstDay === 0 ? 6 : firstDay - 1; 
+
+            const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+
+            // Üres helyek a hónap előtt
+            for (let i = 0; i < firstDay; i++) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'day empty';
+                calendar.appendChild(emptyDiv);
+            }
+
+            // Napok kirajzolása
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'day';
+                dayDiv.innerHTML = `
+                    <div class="day-number">${day}</div>
+                    <div class="event-slot">Event</div>
+                    <div class="event-slot">Versenyző</div>
+                `;
+                calendar.appendChild(dayDiv);
+            }
+        }
+
+        monthSelect.addEventListener('change', (e) => renderCalendar(parseInt(e.target.value)));
+        
+        // Alapértelmezett indítás (Január)
+        renderCalendar(0);
     </script>
 </body>
 </html>
