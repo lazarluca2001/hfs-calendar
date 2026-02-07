@@ -22,21 +22,22 @@
             --event-text: #800000;
         }
 
+        /* KONTRASZTOS DARK MODE */
         [data-theme="dark"] {
-            --bg-color: #0f0f0f;
-            --card-bg: #1a1a1a;
-            --text-color: #f0f0f0;
+            --bg-color: #0a0a0a;
+            --card-bg: #161616;
+            --text-color: #ffffff;
             --border-color: #333333;
-            --hfs-red: #b30000; /* Kicsit élénkebb bordó sötétben */
-            --hfs-light-red: #2a1515;
-            --event-text: #ffcccc; /* Világos szöveg a sötét kártyán */
-            --empty-gray: #151515;
-            /* Kontrasztosabb státuszok sötét módhoz */
-            --status-biztos-bg: #1b2e1c;
-            --status-biztos-border: #4caf50;
-            --status-biztos-text: #a5d6a7;
-            --status-talan-bg: #2e2112;
-            --status-talan-border: #ff9800;
+            --hfs-red: #cc0000; /* Élénkebb piros a kontraszt miatt */
+            --hfs-light-red: #2d1010;
+            --event-text: #ffd6d6; /* Világos pasztell piros szöveg */
+            --empty-gray: #1a1a1a;
+            /* Extra kontrasztos státusz színek */
+            --status-biztos-bg: #0e2b11;
+            --status-biztos-border: #00ff40;
+            --status-biztos-text: #80ff9f;
+            --status-talan-bg: #2b1d0e;
+            --status-talan-border: #ff9100;
             --status-talan-text: #ffcc80;
         }
 
@@ -64,7 +65,17 @@
             display: flex; 
             flex-direction: column; 
             background: var(--bg-color);
-            overflow-y: auto;
+        }
+
+        .month-display {
+            padding: 15px 25px;
+            background: var(--card-bg);
+            color: var(--hfs-red);
+            font-size: 2em;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 1px solid var(--border-color);
         }
 
         .sidebar-card {
@@ -90,27 +101,26 @@
         }
         .filter-btn.active { border-color: var(--hfs-red); background: var(--hfs-light-red); color: var(--text-color); }
 
+        /* FIX EGYENLETES RÁCS */
         .calendar-grid { 
             display: grid; 
             grid-template-columns: repeat(7, 1fr); 
-            grid-auto-rows: minmax(min-content, auto);
+            grid-template-rows: 45px repeat(6, 1fr); 
             gap: 1px; 
             background: var(--border-color); 
+            flex: 1; 
             width: 100%;
         }
         
         .weekday { 
             background: var(--hfs-red); 
             color: #ffffff; 
-            height: 40px;
             display: flex; 
             align-items: center; 
             justify-content: center; 
             font-weight: bold; 
-            font-size: 0.8em; 
-            position: sticky;
-            top: 0;
-            z-index: 5;
+            font-size: 0.85em; 
+            text-transform: uppercase;
         }
         
         .day { 
@@ -119,53 +129,41 @@
             display: flex;
             flex-direction: column;
             box-sizing: border-box;
-            min-height: 100px;
+            overflow-y: auto;
         }
 
-        .empty-day, .day:not(:has(.event-card)) { 
-            min-height: 40px !important; 
-            background-color: var(--empty-gray);
-        }
+        .empty-day { background-color: var(--empty-gray); }
 
-        .day-number { font-weight: bold; color: var(--text-color); opacity: 0.6; font-size: 0.9em; margin-bottom: 2px; }
+        .day-number { font-weight: bold; color: var(--text-color); opacity: 0.5; font-size: 0.9em; margin-bottom: 2px; }
         .today { background: #fffde7 !important; box-shadow: inset 0 0 0 2px #fbc02d; }
-        [data-theme="dark"] .today { background: #2d2a10 !important; box-shadow: inset 0 0 0 2px #fbc02d; }
+        [data-theme="dark"] .today { background: #1a1805 !important; box-shadow: inset 0 0 0 2px #fbc02d; }
 
-        /* Olvasható Event Kártyák */
         .event-card { 
             background-color: var(--hfs-light-red);
             padding: 6px; border-radius: 5px; font-size: 0.75em; 
             color: var(--event-text); 
             border-left: 4px solid var(--hfs-red);
             margin-bottom: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         .event-title { font-weight: bold; display: block; margin-bottom: 4px; font-size: 0.95em; }
 
-        /* Kontrasztos Person Tags */
         .person-tag { 
             padding: 3px 6px; 
             border-radius: 4px; 
             font-size: 0.9em; 
-            font-weight: 600;
+            font-weight: 700;
             display: flex; 
             align-items: center; 
             gap: 4px;
             margin-top: 3px;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(0,0,0,0.1);
         }
         
-        .status-biztos { 
-            background-color: var(--status-biztos-bg); 
-            color: var(--status-biztos-text); 
-            border-left: 3px solid var(--status-biztos-border);
-        }
-        .status-talan { 
-            background-color: var(--status-talan-bg); 
-            color: var(--status-talan-text); 
-            border-left: 3px solid var(--status-talan-border);
-        }
+        .status-biztos { background-color: var(--status-biztos-bg); color: var(--status-biztos-text); border-left: 3px solid var(--status-biztos-border); }
+        .status-talan { background-color: var(--status-talan-bg); color: var(--status-talan-text); border-left: 3px solid var(--status-talan-border); }
 
+        /* DARK MODE KAPCSOLÓ */
         .theme-switch-wrapper { margin-top: auto; padding-top: 10px; display: flex; align-items: center; gap: 10px; font-size: 0.85em; }
         .theme-switch { position: relative; display: inline-block; width: 44px; height: 22px; }
         .theme-switch input { opacity: 0; width: 0; height: 0; }
@@ -204,6 +202,7 @@
     </aside>
 
     <main class="calendar-section">
+        <div id="currentMonthHeader" class="month-display"></div>
         <div id="calendar" class="calendar-grid"></div>
     </main>
 </div>
@@ -216,10 +215,14 @@
         "Mózes": { emoji: "🦄" }, "Luca":  { emoji: "🐶" }, "Zoli":  { emoji: "🕺" }
     };
 
+    const mNames = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
+    const dNames = ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"];
+
     const validStatuses = ["igen", "talán", "talan", "fizetve", "igazolt"];
     let allWishlistEvents = [];
     let activeMemberFilter = null;
 
+    // Dark Mode kezelő
     const toggleSwitch = document.querySelector('#checkbox');
     if (localStorage.getItem('theme') === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
@@ -279,14 +282,17 @@
         const next = allWishlistEvents.filter(e => e._endDate >= now).sort((a,b) => a._startDate - b._startDate)[0];
         if (next) {
             const diff = Math.ceil((next._startDate - now) / 86400000);
-            document.getElementById('nextEventContent').innerHTML = `<strong>${next.Event}</strong><br>📍 ${next.Location || 'Helszín TBD'}<br>📅 ${next["Start date"]}<br><span style="color:var(--hfs-red); font-weight:bold">${diff <= 0 ? "MA KEZDŐDIK!" : "Még " + diff + " nap"}</span>`;
+            document.getElementById('nextEventContent').innerHTML = `<strong>${next.Event}</strong><br>📅 ${next["Start date"]}<br><span style="color:var(--hfs-red); font-weight:bold">${diff <= 0 ? "MA KEZDŐDIK!" : "Még " + diff + " nap"}</span>`;
         }
     }
 
     function render(monthIndex) {
         const cal = document.getElementById('calendar'); cal.innerHTML = '';
+        const header = document.getElementById('currentMonthHeader');
         const year = 2026;
-        ["H", "K", "Sze", "Cs", "P", "Szo", "V"].forEach(d => cal.innerHTML += `<div class="weekday">${d}</div>`);
+
+        header.innerText = mNames[monthIndex];
+        dNames.forEach(d => cal.innerHTML += `<div class="weekday">${d}</div>`);
         
         const first = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
         const days = new Date(year, monthIndex + 1, 0).getDate();
@@ -322,8 +328,7 @@
 
     function setupMonthSelect() {
         const sel = document.getElementById('monthSelect');
-        sel.innerHTML = '';
-        ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"].forEach((m, i) => {
+        mNames.forEach((m, i) => {
             const opt = document.createElement('option'); opt.value = i; opt.textContent = m;
             if(i === new Date().getMonth()) opt.selected = true;
             sel.appendChild(opt);
