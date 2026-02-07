@@ -6,9 +6,12 @@
     <title>HFS European Tour 2026</title>
     <style>
         :root { 
-            --hfs-red: #800000; 
-            --status-biztos: #4CAF50; 
-            --status-talan: #FF9800; 
+            --hfs-red: #800000;
+            --hfs-light-red: #fff0f0; /* Világos pasztell háttér az eventeknek */
+            --status-biztos-bg: #e8f5e9;
+            --status-biztos-border: #2e7d32;
+            --status-talan-bg: #fff3e0;
+            --status-talan-border: #ef6c00;
         }
         body { font-family: 'Segoe UI', sans-serif; margin: 20px; background: #f4f4f4; }
         .main-layout { max-width: 1600px; margin: 0 auto; }
@@ -38,46 +41,59 @@
         .day-number { font-weight: bold; color: #555; margin-bottom: 5px; display: block; }
         .today { background: #fffde7 !important; border: 2px solid #fbc02d !important; }
 
+        /* Világosabb esemény kártyák */
         .event-card { 
-            background-color: var(--hfs-red);
+            background-color: var(--hfs-light-red);
             padding: 8px; 
             border-radius: 6px; 
             font-size: 0.75em; 
-            color: white; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            color: var(--hfs-red); 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             margin-bottom: 4px;
+            border: 1px solid rgba(128, 0, 0, 0.2);
         }
         
         .event-title { 
             font-weight: bold; 
             display: block; 
             margin-bottom: 6px; 
-            border-bottom: 1px solid rgba(255,255,255,0.3);
+            border-bottom: 1px solid rgba(128, 0, 0, 0.1);
             padding-bottom: 2px;
+            text-transform: uppercase;
+            font-size: 1.1em;
         }
         
         .participants-container {
             display: flex;
             flex-wrap: wrap;
-            gap: 4px;
+            gap: 5px;
         }
 
+        /* Egyértelműbb státusz jelzések */
         .person-tag { 
-            padding: 2px 5px; 
-            border-radius: 4px; 
-            font-size: 0.95em; 
-            background: rgba(255, 255, 255, 0.95); 
-            color: #333;
+            padding: 3px 7px; 
+            border-radius: 20px; 
+            font-size: 1em; 
+            font-weight: 600;
             display: flex; 
             align-items: center; 
-            gap: 3px;
-            border-left: 3px solid #ccc;
+            gap: 4px;
+            border: 2px solid #ccc;
         }
         
-        .status-biztos { border-left-color: var(--status-biztos); }
-        .status-talan { border-left-color: var(--status-talan); }
+        .status-biztos { 
+            background-color: var(--status-biztos-bg);
+            border-color: var(--status-biztos-border);
+            color: var(--status-biztos-border);
+        }
+        
+        .status-talan { 
+            background-color: var(--status-talan-bg);
+            border-color: var(--status-talan-border);
+            color: var(--status-talan-border);
+        }
 
-        select { padding: 10px; border-radius: 8px; border: 2px solid var(--hfs-red); font-weight: bold; cursor: pointer; }
+        select { padding: 10px; border-radius: 8px; border: 2px solid var(--hfs-red); font-weight: bold; cursor: pointer; background: white; }
     </style>
 </head>
 <body>
@@ -119,7 +135,7 @@
             const csv = await response.text();
             
             const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
-            const headers = rows[3]; // A fejléc a 4. sorban van
+            const headers = rows[3]; 
             
             allWishlistEvents = [];
             for(let i = 4; i < rows.length; i++) {
@@ -127,23 +143,16 @@
                 if(headers) headers.forEach((h, idx) => { if(h) obj[h] = rows[i][idx]; });
                 
                 if(obj.Event) {
-                    // Csak azokat az eseményeket tartjuk meg, amikre van releváns jelentkező
                     const hasParticipants = Object.keys(resztvevokMap).some(alias => {
                         const status = (obj[alias] || "").toLowerCase();
                         return validStatuses.some(s => status.includes(s));
                     });
-                    
-                    if (hasParticipants) {
-                        allWishlistEvents.push(obj);
-                    }
+                    if (hasParticipants) allWishlistEvents.push(obj);
                 }
             }
-
             setupMonthSelect();
             render(new Date().getMonth());
-        } catch (e) { 
-            console.error("Hiba az adatok betöltésekor:", e); 
-        }
+        } catch (e) { console.error(e); }
     }
 
     function render(monthIndex) {
