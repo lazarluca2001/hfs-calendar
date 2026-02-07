@@ -5,129 +5,122 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HFS European Tour 2026</title>
     <style>
-        :root { --hfs-red: #800000; --border-color: #ddd; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; }
-        h1 { color: var(--hfs-red); border-bottom: 3px solid var(--hfs-red); padding-bottom: 10px; }
-        .controls { margin-bottom: 20px; background: #f9f9f9; padding: 15px; border-radius: 8px; }
-        select { padding: 10px; font-size: 16px; border: 1px solid var(--hfs-red); border-radius: 4px; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); background-color: var(--border-color); border: 1px solid var(--border-color); gap: 1px; }
-        .weekday-header { background: var(--hfs-red); color: white; font-weight: bold; text-align: center; padding: 12px; }
-        .day { background: white; min-height: 160px; padding: 8px; position: relative; border-bottom: 1px solid #eee; }
-        .day-number { font-weight: bold; color: #333; margin-bottom: 8px; display: block; }
-        .empty { background: #f3f3f3; }
-        .event-slot { background: #fff0f0; border-left: 4px solid var(--hfs-red); padding: 5px; margin-bottom: 5px; border-radius: 3px; font-size: 0.8rem; }
-        .event-title { font-weight: bold; color: var(--hfs-red); display: block; }
-        .attendees { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
-        .person-tag { padding: 1px 5px; border-radius: 8px; font-size: 0.7rem; border: 1px solid #800000; color: #800000; font-weight: bold; }
+        :root {
+            --hfs-red: #800000;
+        }
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: var(--hfs-red); text-align: center; border-bottom: 2px solid var(--hfs-red); padding-bottom: 10px; }
+        .controls { margin-bottom: 20px; text-align: center; }
+        select { padding: 10px 20px; font-size: 16px; border: 2px solid var(--hfs-red); border-radius: 6px; cursor: pointer; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background-color: #ddd; border: 1px solid #ddd; }
+        .weekday { background: var(--hfs-red); color: white; padding: 10px; text-align: center; font-weight: bold; }
+        .day { background: white; min-height: 140px; padding: 10px; position: relative; }
+        .day-number { font-weight: bold; color: #555; margin-bottom: 8px; display: block; }
+        .empty { background: #fafafa; }
+        .event-card {
+            background: #fff; border-left: 4px solid var(--hfs-red);
+            padding: 6px; margin-bottom: 8px; border-radius: 4px;
+            font-size: 0.85em; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .event-name { font-weight: bold; display: block; color: #333; margin-bottom: 4px; }
+        .attendees { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+        .tag {
+            padding: 2px 6px; border-radius: 4px; font-size: 0.75em;
+            font-weight: bold; color: white;
+        }
+        /* Egyedi színek a nevekhez */
+        .tag-csongi { background: #444; }
+        .tag-merci { background: #e91e63; }
+        .tag-mozes { background: #3f51b5; }
+        .tag-luca { background: #009688; }
+        .tag-zoli { background: #795548; }
+        .loader { text-align: center; font-style: italic; color: #666; padding: 20px; }
     </style>
 </head>
 <body>
 
+<div class="container">
     <h1>HFS | European Tour 2026</h1>
-    <div class="controls">
-        <label><strong>Válassz hónapot:</strong> </label>
-        <select id="monthSelect"></select>
-    </div>
-    <div id="status-msg" style="color: blue; margin-bottom: 10px;">Adatok betöltése...</div>
+    <div class="controls"><select id="monthSelect"></select></div>
+    <div id="loader" class="loader">Adatok betöltése a Google Drive-ból...</div>
     <div class="calendar-grid" id="calendar"></div>
+</div>
 
-    <script>
-        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=338581218&single=true&output=csv';
-        let naptarAdatok = [];
+<script>
+    const webAppUrl = 'https://script.google.com/macros/s/AKfycbx9e75CADNirX7MZW1UhFyu7Pv2bqIOsIMTregdmvZE5KXi1aqLyuzuJ2iFyDri0SjO/exec';
+    let naptarAdatok = [];
+    const months = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
+    const weekdays = ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"];
 
-        // Extra erős dátum feldolgozó
-        function parseDate(dStr) {
-            if (!dStr) return null;
-            // Eltávolít minden szóközt és a végén lévő pontot, majd a pontok mentén vág
-            const parts = dStr.trim().replace(/\s/g, '').replace(/\.$/, '').split('.');
-            if (parts.length < 3) return null;
-            // JavaScript Date: év, hónap (0-11), nap
-            return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    async function init() {
+        try {
+            const response = await fetch(webAppUrl);
+            naptarAdatok = await response.json();
+            document.getElementById('loader').style.display = 'none';
+            setupMonthSelect();
+            renderCalendar(new Date().getMonth());
+        } catch (e) {
+            document.getElementById('loader').innerText = "Hiba! Kérlek frissítsd az oldalt.";
         }
+    }
 
-        async function adatokBetoltese() {
-            try {
-                const response = await fetch(csvUrl);
-                const text = await response.text();
-                const lines = text.split('\n');
-                const statusMsg = document.getElementById('status-msg');
-                
-                let headerIndex = lines.findIndex(line => line.toLowerCase().includes('event'));
-                if (headerIndex === -1) {
-                    statusMsg.innerText = "Hiba: Nem találom az 'Event' fejlécet a táblázatban!";
-                    return;
-                }
-
-                const headers = lines[headerIndex].split(',').map(h => h.trim().replace(/"/g, ''));
-                const rows = [];
-                for (let i = headerIndex + 1; i < lines.length; i++) {
-                    const currentline = lines[i].split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
-                    if (currentline.length < 3) continue;
-                    const obj = {};
-                    headers.forEach((h, idx) => obj[h] = currentline[idx]?.trim().replace(/"/g, ''));
-                    rows.push(obj);
-                }
-                
-                naptarAdatok = rows;
-                statusMsg.innerText = `Sikeres betöltés: ${rows.length} sor beolvasva.`;
-                renderCalendar(new Date().getMonth());
-            } catch (e) { 
-                document.getElementById('status-msg').innerText = "Hiba történt a letöltéskor!";
-                console.error(e); 
-            }
-        }
-
-        function renderCalendar(monthIndex) {
-            const calendar = document.getElementById('calendar');
-            calendar.innerHTML = '';
-            ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"].forEach(d => {
-                calendar.innerHTML += `<div class="weekday-header">${d}</div>`;
-            });
-
-            const year = 2026;
-            let firstDay = new Date(year, monthIndex, 1).getDay();
-            firstDay = (firstDay === 0) ? 6 : firstDay - 1;
-            const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-
-            for (let i = 0; i < firstDay; i++) calendar.innerHTML += `<div class="day empty"></div>`;
-
-            const nevek = ["Csongi", "Merci", "Mózes", "Luca", "Zoli"];
-            const elfogadott = ["igen", "talán", "talan", "fizetve", "igazolt"];
-
-            for (let day = 1; day <= daysInMonth; day++) {
-                const d = new Date(year, monthIndex, day);
-                d.setHours(0,0,0,0);
-                
-                const napi = naptarAdatok.filter(s => {
-                    const start = parseDate(s["Start date"]);
-                    const end = parseDate(s["End date"]);
-                    if (!start || !end) return false;
-                    start.setHours(0,0,0,0);
-                    end.setHours(0,0,0,0);
-                    return d >= start && d <= end;
-                });
-
-                let html = `<div class="day"><span class="day-number">${day}</span>`;
-                napi.forEach(e => {
-                    let resztvevok = nevek.filter(n => elfogadott.includes((e[n] || "").toLowerCase()));
-                    if (resztvevok.length > 0) {
-                        html += `<div class="event-slot">
-                            <span class="event-title">${e.Event || 'Verseny'}</span>
-                            <div class="attendees">` + 
-                            resztvevok.map(r => `<span class="person-tag">${r}</span>`).join('') + 
-                            `</div></div>`;
-                    }
-                });
-                calendar.innerHTML += html + `</div>`;
-            }
-        }
-
+    function setupMonthSelect() {
         const sel = document.getElementById('monthSelect');
-        ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"].forEach((m, i) => {
-            sel.innerHTML += `<option value="${i}" ${i === new Date().getMonth() ? 'selected' : ''}>${m}</option>`;
+        months.forEach((m, i) => {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = m;
+            if(i === new Date().getMonth()) opt.selected = true;
+            sel.appendChild(opt);
         });
         sel.onchange = (e) => renderCalendar(parseInt(e.target.value));
-        adatokBetoltese();
-    </script>
+    }
+
+    function renderCalendar(monthIndex) {
+        const container = document.getElementById('calendar');
+        container.innerHTML = '';
+        weekdays.forEach(d => container.innerHTML += `<div class="weekday">${d}</div>`);
+
+        const year = 2026;
+        const firstDay = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
+        const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+
+        for (let i = 0; i < firstDay; i++) container.innerHTML += `<div class="day empty"></div>`;
+
+        const nevek = ["Csongi", "Merci", "Mózes", "Luca", "Zoli"];
+        const statuszok = ["igen", "talán", "talan", "fizetve", "igazolt"];
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const currentObjDate = new Date(year, monthIndex, day);
+            currentObjDate.setHours(0,0,0,0);
+
+            const napiEsemenyek = naptarAdatok.filter(sor => {
+                const start = new Date(sor["Start date"]);
+                const end = new Date(sor["End date"]);
+                if(isNaN(start) || isNaN(end)) return false;
+                start.setHours(0,0,0,0);
+                end.setHours(0,0,0,0);
+                return currentObjDate >= start && currentObjDate <= end;
+            });
+
+            let dayHtml = `<div class="day"><span class="day-number">${day}</span>`;
+            napiEsemenyek.forEach(ev => {
+                let tags = "";
+                nevek.forEach(n => {
+                    const s = (ev[n] || "").toString().toLowerCase();
+                    if(statuszok.includes(s)) {
+                        tags += `<span class="tag tag-${n.toLowerCase()}">${n[0]}</span> `;
+                    }
+                });
+                if(tags !== "") {
+                    dayHtml += `<div class="event-card"><span class="event-name">${ev.Event}</span><div class="attendees">${tags}</div></div>`;
+                }
+            });
+            container.innerHTML += dayHtml + `</div>`;
+        }
+    }
+    init();
+</script>
 </body>
 </html>
