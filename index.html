@@ -33,12 +33,10 @@
             padding: 2px 6px; border-radius: 4px; font-size: 0.9em;
             font-weight: 500; display: flex; align-items: center; gap: 5px;
         }
-        /* Státusz színek a nevek mellé */
         .status-igen { color: #2e7d32; border-left: 3px solid var(--status-igen); background: #f1f8f1; }
         .status-talan { color: #e65100; border-left: 3px solid var(--status-talan); background: #fff8e1; }
         .status-fizetve { color: #0d47a1; border-left: 3px solid var(--status-fizetve); background: #e3f2fd; }
         .status-igazolt { color: #4a148c; border-left: 3px solid var(--status-igazolt); background: #f3e5f5; }
-        
         .loader { text-align: center; font-style: italic; color: #666; padding: 20px; }
     </style>
 </head>
@@ -54,7 +52,6 @@
 <script>
     const webAppUrl = 'https://script.google.com/macros/s/AKfycbx9e75CADNirX7MZW1UhFyu7Pv2bqIOsIMTregdmvZE5KXi1aqLyuzuJ2iFyDri0SjO/exec';
     
-    // Résztvevők konfigurációja
     const resztvevokMap = {
         "Csongi": { nev: "Ferenczi Csongor", emoji: "🌈" },
         "Merci": { nev: "Angyal Mercédesz", emoji: "💃" },
@@ -67,13 +64,24 @@
     const months = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
     const weekdays = ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"];
 
+    // Javított dátumkezelő a 2026.01.09. formátumhoz
     function parseSheetDate(dStr) {
         if (!dStr) return null;
+        // Ha eleve dátum objektum, adjuk vissza
         if (dStr instanceof Date) return dStr;
-        const s = String(dStr).replace(/\s/g, '').replace(/\.$/, '');
-        const p = s.split('.');
-        if (p.length < 3) return null;
-        return new Date(p[0], p[1] - 1, p[2]);
+        
+        // Szöveges dátum tisztítása (pl. 2026.01.09. -> 2026, 0, 9)
+        const parts = String(dStr).trim().replace(/\s/g, '').split('.');
+        if (parts.length >= 3) {
+            const year = parseInt(parts[0]);
+            const month = parseInt(parts[1]) - 1;
+            const day = parseInt(parts[2]);
+            return new Date(year, month, day);
+        }
+        
+        // Ha az ISO formátum jönne (2026-01-09)
+        const date = new Date(dStr);
+        return isNaN(date) ? null : date;
     }
 
     async function init() {
@@ -121,9 +129,10 @@
                 const start = parseSheetDate(sor["Start date"]);
                 const end = parseSheetDate(sor["End date"]);
                 if(!start || !end) return false;
-                start.setHours(0,0,0,0);
-                end.setHours(0,0,0,0);
-                return currentDayDate >= start && currentDayDate <= end;
+                
+                const sCompare = new Date(start).setHours(0,0,0,0);
+                const eCompare = new Date(end).setHours(0,0,0,0);
+                return currentDayDate.getTime() >= sCompare && currentDayDate.getTime() <= eCompare;
             });
 
             let dayHtml = `<div class="day"><span class="day-number">${day}</span>`;
