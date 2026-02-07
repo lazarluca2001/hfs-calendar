@@ -7,7 +7,7 @@
     <style>
         :root { 
             --hfs-red: #800000;
-            --hfs-light-red: #fff0f0; /* Világos pasztell háttér az eventeknek */
+            --hfs-light-red: #fff0f0; 
             --status-biztos-bg: #e8f5e9;
             --status-biztos-border: #2e7d32;
             --status-talan-bg: #fff3e0;
@@ -41,7 +41,6 @@
         .day-number { font-weight: bold; color: #555; margin-bottom: 5px; display: block; }
         .today { background: #fffde7 !important; border: 2px solid #fbc02d !important; }
 
-        /* Világosabb esemény kártyák */
         .event-card { 
             background-color: var(--hfs-light-red);
             padding: 8px; 
@@ -69,7 +68,6 @@
             gap: 5px;
         }
 
-        /* Egyértelműbb státusz jelzések */
         .person-tag { 
             padding: 3px 7px; 
             border-radius: 20px; 
@@ -123,9 +121,12 @@
     let allWishlistEvents = [];
 
     function parseHungarianDate(dStr) {
-        if(!dStr) return null;
-        const p = dStr.replace(/\s/g, '').split('.');
+        if(!dStr || dStr.trim() === "") return null;
+        // Tisztítjuk a bemenetet az esetleges pontoktól a végén
+        const cleanStr = dStr.trim().replace(/\.+$/, '');
+        const p = cleanStr.split('.');
         if(p.length < 3) return null;
+        // JS Date: év, hónap(0-11), nap
         return new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
     }
 
@@ -147,7 +148,12 @@
                         const status = (obj[alias] || "").toLowerCase();
                         return validStatuses.some(s => status.includes(s));
                     });
-                    if (hasParticipants) allWishlistEvents.push(obj);
+                    if (hasParticipants) {
+                        // Előre feldolgozzuk a dátumokat a hibák elkerülése végett
+                        obj._startDate = parseHungarianDate(obj["Start date"]);
+                        obj._endDate = parseHungarianDate(obj["End date"]);
+                        allWishlistEvents.push(obj);
+                    }
                 }
             }
             setupMonthSelect();
@@ -171,11 +177,12 @@
         for(let d = 1; d <= daysInMonth; d++) {
             const current = new Date(year, monthIndex, d); 
             current.setHours(0,0,0,0);
+            const currentTime = current.getTime();
             
             const dailyEvents = allWishlistEvents.filter(e => {
-                const start = parseHungarianDate(e["Start date"]);
-                const end = parseHungarianDate(e["End date"]);
-                return start && end && current >= start && current <= end;
+                if (!e._startDate || !e._endDate) return false;
+                // Szigorú összehasonlítás az időbélyegek alapján
+                return currentTime >= e._startDate.getTime() && currentTime <= e._endDate.getTime();
             });
 
             const isToday = current.toDateString() === new Date().toDateString();
@@ -204,6 +211,7 @@
     function setupMonthSelect() {
         const sel = document.getElementById('monthSelect');
         const mNames = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
+        sel.innerHTML = "";
         mNames.forEach((m, i) => {
             const opt = document.createElement('option'); 
             opt.value = i; 
