@@ -51,17 +51,30 @@
     const wishlistUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=338581218&single=true&output=csv';
     const eredmenyekUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=1410406652&single=true&output=csv';
 
+    // Itt definiáljuk, hogy ki kicsoda
     const resztvevokMap = {
-        "Ferenczi Csongor": { emoji: "🌈", alias: "Csongi" },
-        "Angyal Mercédesz": { emoji: "🦆", alias: "Merci" },
-        "Bende Márton": { emoji: "🦄", alias: "Mózes" },
-        "Lázár Luca": { emoji: "🐶", alias: "Luca" },
-        "Dominguez Zoltán": { emoji: "🕺", alias: "Zoli" }
+        "Csongi": { emoji: "🌈", fullName: "Ferenczi Csongor" },
+        "Merci": { emoji: "🦆", fullName: "Angyal Mercédesz" },
+        "Mózes": { emoji: "🦄", fullName: "Bende Márton" },
+        "Luca":  { emoji: "🐶", fullName: "Lázár Luca" },
+        "Zoli":  { emoji: "🕺", fullName: "Dominguez Zoltán" }
     };
 
     const divisionOrder = ["Newcomer", "Novice", "Intermediate", "Advanced", "All-Star", "Champion"];
     let allWishlistEvents = [];
     let pastResults = [];
+
+    // Név-összekötő segédfüggvény
+    function getAliasByName(name) {
+        if (!name) return null;
+        const normalized = name.trim().toLowerCase();
+        for (const [alias, data] of Object.entries(resztvevokMap)) {
+            if (alias.toLowerCase() === normalized || data.fullName.toLowerCase() === normalized) {
+                return alias;
+            }
+        }
+        return null;
+    }
 
     function parseHungarianDate(dStr) {
         if(!dStr || dStr.trim() === "") return null;
@@ -75,35 +88,35 @@
             const [resW, resE] = await Promise.all([fetch(wishlistUrl), fetch(eredmenyekUrl)]);
             const csvW = await resW.text(), csvE = await resE.text();
             
-            // Wishlist feldolgozása
             const rowsW = csvW.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
+            const headersW = rowsW[3];
             for(let i = 4; i < rowsW.length; i++) {
-                let obj = {}; rowsW[3].forEach((h, idx) => { if(h) obj[h] = rowsW[i][idx]; });
+                let obj = {}; headersW.forEach((h, idx) => { if(h) obj[h] = rowsW[i][idx]; });
                 if(obj.Event) allWishlistEvents.push(obj);
             }
 
-            // Eredmények feldolgozása
             const rowsE = csvE.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
-            
-            // JAVÍTÁS: Fejléc a 4. sorban = index 3
             const headersE = rowsE[3]; 
 
             const findIdx = (names) => headersE.findIndex(h => names.some(n => h.toLowerCase().includes(n.toLowerCase())));
             
-            const idxName = findIdx(['Name']);
+            const idxName = findIdx(['Name', 'Név']);
             const idxDiv = findIdx(['Division', 'Level', 'Cím']);
-            const idxEvent = findIdx(['Event']);
-            const idxDate = findIdx(['Date']);
+            const idxEvent = findIdx(['Event', 'Esemény']);
+            const idxDate = findIdx(['Date', 'Dátum']);
             const idxFinal = findIdx(['Final', 'Helyezés']);
             const idxPoint = findIdx(['Point', 'Pont']);
 
-            // JAVÍTÁS: Adatok az 5. sortól = index 4
             for(let i = 4; i < rowsE.length; i++) {
                 const r = rowsE[i];
-                if(!r[idxName] || r[idxName] === "Name") continue;
+                if(!r[idxName]) continue;
                 
+                // Megkeressük a becenevet a teljes név alapján
+                const alias = getAliasByName(r[idxName]);
+                if (!alias) continue;
+
                 pastResults.push({
-                    Name: r[idxName].trim(),
+                    Alias: alias,
                     Level: r[idxDiv] ? r[idxDiv].trim() : "Ismeretlen",
                     Event: r[idxEvent] ? r[idxEvent].trim() : "",
                     Date: r[idxDate] ? r[idxDate].trim() : "",
@@ -127,32 +140,29 @@
                 divData[div] = {};
                 Object.keys(resztvevokMap).forEach(k => divData[div][k] = { gold: 0, silver: 0, bronze: 0, points: 0 });
             }
-            if(resztvevokMap[r.Name]) {
-                const place = parseInt(r.Final);
-                if(place === 1) divData[div][r.Name].gold++;
-                else if(place === 2) divData[div][r.Name].silver++;
-                else if(place === 3) divData[div][r.Name].bronze++;
-                
-                divData[div][r.Name].points += parseInt(r.Point) || 0;
-            }
+            const alias = r.Alias;
+            const place = parseInt(r.Final);
+            if(place === 1) divData[div][alias].gold++;
+            else if(place === 2) divData[div][alias].silver++;
+            else if(place === 3) divData[div][alias].bronze++;
+            divData[div][alias].points += parseInt(r.Point) || 0;
         });
 
         container.innerHTML = "";
         divisionOrder.forEach(divName => {
             if(divData[divName]) {
                 const stats = divData[divName];
-                const sorted = Object.keys(resztvevokMap).filter(n => stats[n].points > 0 || stats[n].gold > 0).sort((a,b) => stats[b].points - stats[a].points);
-                
+                const sorted = Object.keys(resztvevokMap).filter(a => stats[a].points > 0 || stats[a].gold > 0).sort((a,b) => stats[b].points - stats[a].points);
                 if(sorted.length > 0) {
                     let box = `<div class="leaderboard-box"><h3>${divName}</h3>`;
-                    sorted.forEach(n => {
+                    sorted.forEach(a => {
                         box += `<div class="leaderboard-item">
-                                    <div style="font-size: 1.2em">${resztvevokMap[n].emoji}</div>
+                                    <div style="font-size: 1.2em">${resztvevokMap[a].emoji}</div>
                                     <div class="leader-info">
-                                        <span class="leader-name">${resztvevokMap[n].alias}</span>
-                                        <span class="leader-stats">${stats[n].points} pont</span>
+                                        <span class="leader-name">${a}</span>
+                                        <span class="leader-stats">${stats[a].points} pont</span>
                                     </div>
-                                    <div class="leader-medals">${'🥇'.repeat(stats[n].gold)}${'🥈'.repeat(stats[n].silver)}${'🥉'.repeat(stats[n].bronze)}</div>
+                                    <div class="leader-medals">${'🥇'.repeat(stats[a].gold)}${'🥈'.repeat(stats[a].silver)}${'🥉'.repeat(stats[a].bronze)}</div>
                                 </div>`;
                     });
                     container.innerHTML += box + `</div>`;
@@ -180,13 +190,13 @@
                 const isFirstDay = current.getTime() === parseHungarianDate(e["Start date"]).getTime();
                 if (isFirstDay) {
                     let tags = "";
-                    Object.entries(resztvevokMap).forEach(([fullName, info]) => {
-                        const status = (e[info.alias] || "").toLowerCase();
+                    Object.entries(resztvevokMap).forEach(([alias, info]) => {
+                        const status = (e[alias] || "").toLowerCase();
                         if (status.includes("igen") || status.includes("talan") || status.includes("igazolt")) {
-                            const res = pastResults.find(r => r.Name === fullName && r.Event.trim().toLowerCase() === e.Event.trim().toLowerCase() && parseHungarianDate(r.Date)?.getFullYear() === year);
+                            const res = pastResults.find(r => r.Alias === alias && r.Event.trim().toLowerCase() === e.Event.trim().toLowerCase() && parseHungarianDate(r.Date)?.getFullYear() === year);
                             const p = res ? parseInt(res.Final) : null;
                             let icon = (p === 1) ? "🥇" : (p === 2) ? "🥈" : (p === 3) ? "🥉" : "";
-                            tags += `<div class="person-tag ${status.includes("talan") ? 'status-talan' : 'status-biztos'}">${info.emoji} ${info.alias} ${icon}</div>`;
+                            tags += `<div class="person-tag ${status.includes("talan") ? 'status-talan' : 'status-biztos'}">${info.emoji} ${alias} ${icon}</div>`;
                         }
                     });
                     html += `<div class="event-card"><span class="event-title">${e.Event}</span>${tags}</div>`;
