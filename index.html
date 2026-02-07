@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HFS European Tour 2026</title>
     <style>
-        :root { --hfs-red: #800000; --status-biztos: #4CAF50; --status-talan: #FF9800; }
+        :root { 
+            --hfs-red: #800000; 
+            --status-biztos: #4CAF50; 
+            --status-talan: #FF9800; 
+        }
         body { font-family: 'Segoe UI', sans-serif; margin: 20px; background: #f4f4f4; }
         .main-layout { max-width: 1600px; margin: 0 auto; }
         .calendar-section { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -22,8 +26,8 @@
         
         .day { 
             background: white; 
-            min-height: 140px; /* Alapmagasság */
-            height: auto;      /* Engedi nyúlni a cellát */
+            min-height: 140px; 
+            height: auto;
             padding: 8px; 
             position: relative; 
             display: flex;
@@ -34,40 +38,46 @@
         .day-number { font-weight: bold; color: #555; margin-bottom: 5px; display: block; }
         .today { background: #fffde7 !important; border: 2px solid #fbc02d !important; }
 
-        /* Színes Event Kártya */
+        /* Minden event kártya HFS bordó háttérrel */
         .event-card { 
-            padding: 6px; 
+            background-color: var(--hfs-red);
+            padding: 8px; 
             border-radius: 6px; 
             font-size: 0.75em; 
-            color: white; /* Fehér szöveg a színes háttéren */
+            color: white; 
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            border-left: 4px solid rgba(0,0,0,0.2);
+            margin-bottom: 4px;
         }
         
-        .event-title { font-weight: bold; display: block; margin-bottom: 4px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
+        .event-title { 
+            font-weight: bold; 
+            display: block; 
+            margin-bottom: 6px; 
+            border-bottom: 1px solid rgba(255,255,255,0.3);
+            padding-bottom: 2px;
+        }
         
-        /* Résztvevők konténere a kártyán belül */
         .participants-container {
             display: flex;
             flex-wrap: wrap;
             gap: 4px;
-            margin-top: 4px;
         }
 
         .person-tag { 
             padding: 2px 5px; 
             border-radius: 4px; 
-            font-size: 0.9em; 
-            background: rgba(255, 255, 255, 0.9); /* Világos háttér a sötét kártyán */
+            font-size: 0.95em; 
+            background: rgba(255, 255, 255, 0.95); 
             color: #333;
             display: flex; 
             align-items: center; 
             gap: 3px;
-            border-bottom: 2px solid #ccc;
+            border-left: 3px solid #ccc;
         }
         
-        .status-biztos { border-bottom-color: var(--status-biztos); }
-        .status-talan { border-bottom-color: var(--status-talan); }
+        /* Státusz színek a név-címke bal szélén */
+        .status-biztos { border-left-color: var(--status-biztos); }
+        .status-talan { border-left-color: var(--status-talan); }
 
         select { padding: 10px; border-radius: 8px; border: 2px solid var(--hfs-red); font-weight: bold; cursor: pointer; }
     </style>
@@ -96,19 +106,10 @@
         "Zoli":  { emoji: "🕺", fullName: "Dominguez Zoltán" }
     };
 
+    const validStatuses = ["igen", "talán", "talan", "fizetve", "igazolt"];
+
     let allWishlistEvents = [];
     let pastResults = [];
-
-    // Szín generátor az esemény neve alapján
-    function getEventColor(eventName) {
-        let hash = 0;
-        for (let i = 0; i < eventName.length; i++) {
-            hash = eventName.charCodeAt(i) + ((hash << 5) - hash);
-        }
-        // Pasztell/Sötétebb színek a jó olvashatóságért
-        const h = Math.abs(hash % 360);
-        return `hsl(${h}, 60%, 35%)`;
-    }
 
     function getAliasByName(name) {
         if (!name) return null;
@@ -134,10 +135,18 @@
             const rowsW = csvW.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
             const headersW = rowsW[3];
             allWishlistEvents = [];
+            
             for(let i = 4; i < rowsW.length; i++) {
                 let obj = {}; 
                 if(headersW) headersW.forEach((h, idx) => { if(h) obj[h] = rowsW[i][idx]; });
-                if(obj.Event) allWishlistEvents.push(obj);
+                
+                if(obj.Event) {
+                    const hasParticipants = Object.keys(resztvevokMap).some(alias => {
+                        const status = (obj[alias] || "").toLowerCase();
+                        return validStatuses.some(s => status.includes(s));
+                    });
+                    if (hasParticipants) allWishlistEvents.push(obj);
+                }
             }
 
             const rowsE = csvE.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
@@ -179,21 +188,19 @@
             let html = `<div class="day ${isToday ? 'today' : ''}"><span class="day-number">${d}</span>`;
             
             daily.forEach(e => {
-                const eventColor = getEventColor(e.Event);
                 let tags = "";
-                
                 Object.entries(resztvevokMap).forEach(([alias, info]) => {
                     const status = (e[alias] || "").toLowerCase();
-                    if (status.includes("igen") || status.includes("talan") || status.includes("igazolt")) {
+                    if (validStatuses.some(s => status.includes(s))) {
                         const res = pastResults.find(r => r.Alias === alias && r.Event.trim().toLowerCase() === e.Event.trim().toLowerCase());
                         let medal = (res?.Final === 1) ? "🥇" : (res?.Final === 2) ? "🥈" : (res?.Final === 3) ? "🥉" : "";
-                        tags += `<div class="person-tag ${status.includes("talan") ? 'status-talan' : 'status-biztos'}">${info.emoji} ${alias}${medal}</div>`;
+                        const isTalan = status.includes("talán") || status.includes("talan");
+                        tags += `<div class="person-tag ${isTalan ? 'status-talan' : 'status-biztos'}">${info.emoji} ${alias}${medal}</div>`;
                     }
                 });
 
-                // Minden nap látszódnak a nevek, de a fejléc csak az első napon vastagabb
                 html += `
-                    <div class="event-card" style="background-color: ${eventColor}">
+                    <div class="event-card">
                         <span class="event-title">${e.Event}</span>
                         <div class="participants-container">${tags}</div>
                     </div>`;
