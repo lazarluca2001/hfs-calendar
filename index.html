@@ -16,8 +16,58 @@
         }
         body { font-family: 'Segoe UI', sans-serif; margin: 20px; background: #f4f4f4; }
         .main-layout { max-width: 1600px; margin: 0 auto; }
+
+        /* Visszaszámláló kártya stílusa */
+        .next-event-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 8px solid var(--hfs-red);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .next-event-info h2 { margin: 0; color: var(--hfs-red); font-size: 1.4em; text-transform: uppercase; }
+        .next-event-info p { margin: 5px 0 0; color: #555; font-weight: 600; font-size: 1.1em; }
+        .countdown-timer { text-align: right; font-size: 1.2em; font-weight: bold; color: var(--hfs-red); }
+        .countdown-timer span { font-size: 1.5em; display: block; }
+
         .calendar-section { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         
+        /* Tag szűrő stílusa */
+        .member-filter {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            background: white;
+            border: 2px solid #ddd;
+            padding: 10px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            filter: grayscale(100%);
+            opacity: 0.6;
+        }
+        .filter-btn.active {
+            border-color: var(--hfs-red);
+            background: var(--hfs-light-red);
+            filter: grayscale(0%);
+            opacity: 1;
+            transform: scale(1.05);
+            box-shadow: 0 4px 10px rgba(128,0,0,0.2);
+        }
+        .filter-btn:hover { opacity: 1; filter: grayscale(0%); border-color: #bbb; }
+
         .calendar-grid { 
             display: grid; 
             grid-template-columns: repeat(7, 1fr); 
@@ -39,7 +89,6 @@
             gap: 5px;
         }
 
-        /* Kiszürkített napok stílusa */
         .empty-day {
             background-color: var(--empty-gray);
             background-image: radial-gradient(#dcdcdc 1px, transparent 1px);
@@ -100,17 +149,24 @@
             color: var(--status-talan-border);
         }
 
+        #controls { text-align: center; margin-bottom: 20px; }
         select { padding: 10px; border-radius: 8px; border: 2px solid var(--hfs-red); font-weight: bold; cursor: pointer; background: white; }
     </style>
 </head>
 <body>
 
 <div class="main-layout">
+    <div id="nextEventContainer"></div>
+
     <div class="calendar-section">
-        <h1 style="text-align:center; color:var(--hfs-red);">HFS | European Tour 2026</h1>
-        <div style="text-align:center; margin-bottom:20px;">
+        <h1 style="text-align:center; color:var(--hfs-red); margin-top:0;">HFS | European Tour 2026</h1>
+        
+        <div class="member-filter" id="memberFilter"></div>
+
+        <div id="controls">
             <select id="monthSelect"></select>
         </div>
+        
         <div id="calendar" class="calendar-grid"></div>
     </div>
 </div>
@@ -128,6 +184,7 @@
 
     const validStatuses = ["igen", "talán", "talan", "fizetve", "igazolt"];
     let allWishlistEvents = [];
+    let activeMemberFilter = null;
 
     function parseHungarianDate(dStr) {
         if(!dStr || dStr.trim() === "") return null;
@@ -141,7 +198,6 @@
         try {
             const response = await fetch(wishlistUrl);
             const csv = await response.text();
-            
             const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
             const headers = rows[3]; 
             
@@ -151,39 +207,88 @@
                 if(headers) headers.forEach((h, idx) => { if(h) obj[h] = rows[i][idx]; });
                 
                 if(obj.Event) {
-                    const hasParticipants = Object.keys(resztvevokMap).some(alias => {
-                        const status = (obj[alias] || "").toLowerCase();
-                        return validStatuses.some(s => status.includes(s));
-                    });
-                    if (hasParticipants) {
-                        obj._startDate = parseHungarianDate(obj["Start date"]);
-                        obj._endDate = parseHungarianDate(obj["End date"]);
-                        allWishlistEvents.push(obj);
-                    }
+                    obj._startDate = parseHungarianDate(obj["Start date"]);
+                    obj._endDate = parseHungarianDate(obj["End date"]);
+                    if (obj._startDate) allWishlistEvents.push(obj);
                 }
             }
+
+            createFilterButtons();
+            updateNextEventCard();
             setupMonthSelect();
             render(new Date().getMonth());
         } catch (e) { console.error(e); }
+    }
+
+    function createFilterButtons() {
+        const container = document.getElementById('memberFilter');
+        Object.entries(resztvevokMap).forEach(([alias, info]) => {
+            const btn = document.createElement('div');
+            btn.className = 'filter-btn';
+            btn.innerHTML = `<span>${info.emoji}</span> ${alias}`;
+            btn.onclick = () => {
+                const wasActive = btn.classList.contains('active');
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                
+                if (wasActive) {
+                    activeMemberFilter = null;
+                } else {
+                    activeMemberFilter = alias;
+                    btn.classList.add('active');
+                }
+                render(parseInt(document.getElementById('monthSelect').value));
+            };
+            container.appendChild(btn);
+        });
+    }
+
+    function updateNextEventCard() {
+        const now = new Date();
+        now.setHours(0,0,0,0);
+        
+        // Csak azokat nézzük, amin legalább egy HFS tag ott van
+        const upcoming = allWishlistEvents
+            .filter(e => {
+                if (!e._endDate || e._endDate < now) return false;
+                return Object.keys(resztvevokMap).some(alias => {
+                    const status = (e[alias] || "").toLowerCase();
+                    return validStatuses.some(s => status.includes(s));
+                });
+            })
+            .sort((a, b) => a._startDate - b._startDate);
+
+        const container = document.getElementById('nextEventContainer');
+        if (upcoming.length > 0) {
+            const next = upcoming[0];
+            const diffTime = next._startDate - now;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            container.innerHTML = `
+                <div class="next-event-card">
+                    <div class="next-event-info">
+                        <h2>🚀 Következő állomás: ${next.Event}</h2>
+                        <p>📍 ${next.Location || 'Helyszín hamarosan'} | 📅 ${next["Start date"]}</p>
+                    </div>
+                    <div class="countdown-timer">
+                        ${diffDays <= 0 ? "<span>MA KEZDŐDIK! 🔥</span>" : `Még <span>${diffDays} nap</span> van hátra`}
+                    </div>
+                </div>
+            `;
+        }
     }
 
     function render(monthIndex) {
         const cal = document.getElementById('calendar'); 
         cal.innerHTML = '';
         const year = 2026;
-        
-        const days = ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"];
-        days.forEach(d => cal.innerHTML += `<div class="weekday">${d}</div>`);
+        const daysHeader = ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"];
+        daysHeader.forEach(d => cal.innerHTML += `<div class="weekday">${d}</div>`);
         
         const firstDay = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
         const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
         
-        // Előző hónap napjainak kiszürkítése
-        for(let i = 0; i < firstDay; i++) {
-            cal.innerHTML += `<div class="day empty-day"></div>`;
-        }
+        for(let i = 0; i < firstDay; i++) cal.innerHTML += `<div class="day empty-day"></div>`;
         
-        // Aktuális hónap napjai
         for(let d = 1; d <= daysInMonth; d++) {
             const current = new Date(year, monthIndex, d); 
             current.setHours(0,0,0,0);
@@ -191,7 +296,20 @@
             
             const dailyEvents = allWishlistEvents.filter(e => {
                 if (!e._startDate || !e._endDate) return false;
-                return currentTime >= e._startDate.getTime() && currentTime <= e._endDate.getTime();
+                const isDuring = currentTime >= e._startDate.getTime() && currentTime <= e._endDate.getTime();
+                if (!isDuring) return false;
+
+                // Ha van aktív szűrő, csak azt az eseményt mutatjuk, amin az adott tag részt vesz
+                if (activeMemberFilter) {
+                    const status = (e[activeMemberFilter] || "").toLowerCase();
+                    return validStatuses.some(s => status.includes(s));
+                }
+
+                // Ha nincs szűrő, csak azokat mutatjuk, amin legalább egy tag ott van
+                return Object.keys(resztvevokMap).some(alias => {
+                    const status = (e[alias] || "").toLowerCase();
+                    return validStatuses.some(s => status.includes(s));
+                });
             });
 
             const isToday = current.toDateString() === new Date().toDateString();
@@ -202,8 +320,11 @@
                 Object.entries(resztvevokMap).forEach(([alias, info]) => {
                     const status = (e[alias] || "").toLowerCase();
                     if (validStatuses.some(s => status.includes(s))) {
-                        const isTalan = status.includes("talán") || status.includes("talan");
-                        tags += `<div class="person-tag ${isTalan ? 'status-talan' : 'status-biztos'}">${info.emoji} ${alias}</div>`;
+                        // Ha van szűrő, csak a szűrt személyt írjuk ki, egyébként mindenkit
+                        if (!activeMemberFilter || activeMemberFilter === alias) {
+                            const isTalan = status.includes("talán") || status.includes("talan");
+                            tags += `<div class="person-tag ${isTalan ? 'status-talan' : 'status-biztos'}">${info.emoji} ${alias}</div>`;
+                        }
                     }
                 });
 
@@ -216,12 +337,9 @@
             cal.innerHTML += html + `</div>`;
         }
 
-        // Következő hónap elejének kiszürkítése (hogy a rács mindig téglalap legyen)
         const totalCells = firstDay + daysInMonth;
         const nextMonthCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
-        for(let i = 0; i < nextMonthCells; i++) {
-            cal.innerHTML += `<div class="day empty-day"></div>`;
-        }
+        for(let i = 0; i < nextMonthCells; i++) cal.innerHTML += `<div class="day empty-day"></div>`;
     }
 
     function setupMonthSelect() {
