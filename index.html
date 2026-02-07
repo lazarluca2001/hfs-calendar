@@ -5,45 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HFS European Tour 2026</title>
     <style>
-        :root { --hfs-red: #800000; --border-color: #ddd; --status-igen: #4CAF50; --status-talan: #FF9800; --status-fizetve: #2196F3; --status-igazolt: #9C27B0; }
+        :root { --hfs-red: #800000; --border-color: #ddd; }
         body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; }
         h1 { color: var(--hfs-red); border-bottom: 3px solid var(--hfs-red); padding-bottom: 10px; }
         .controls { margin-bottom: 20px; background: #f9f9f9; padding: 15px; border-radius: 8px; }
         select { padding: 10px; font-size: 16px; border: 1px solid var(--hfs-red); border-radius: 4px; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); background-color: var(--border-color); border: 1px solid var(--border-color); gap: 1px; }
         .weekday-header { background: var(--hfs-red); color: white; font-weight: bold; text-align: center; padding: 12px; }
-        .day { background: white; min-height: 150px; padding: 8px; position: relative; overflow-y: auto; }
+        .day { background: white; min-height: 160px; padding: 8px; position: relative; border-bottom: 1px solid #eee; }
         .day-number { font-weight: bold; color: #333; margin-bottom: 8px; display: block; }
         .empty { background: #f3f3f3; }
-        .event-slot { background-color: #fffefb; border-left: 4px solid var(--hfs-red); padding: 6px; margin-bottom: 8px; border-radius: 3px; font-size: 0.82rem; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .event-slot { background: #fff0f0; border-left: 4px solid var(--hfs-red); padding: 5px; margin-bottom: 5px; border-radius: 3px; font-size: 0.8rem; }
         .event-title { font-weight: bold; color: var(--hfs-red); display: block; }
-        .attendees { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; border-top: 1px solid #eee; padding-top: 4px; }
-        .person-tag { padding: 1px 5px; border-radius: 8px; font-size: 0.7rem; border: 1px solid transparent; font-weight: 500; }
-        .status-igen { background-color: #e8f5e9; color: #2e7d32; border-color: #4CAF50; }
-        .status-talan { background-color: #fff3e0; color: #ef6c00; border-color: #FF9800; }
-        .status-fizetve { background-color: #e3f2fd; color: #1565c0; border-color: #2196F3; }
-        .status-igazolt { background-color: #f3e5f5; color: #7b1fa2; border-color: #9C27B0; }
+        .attendees { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+        .person-tag { padding: 1px 5px; border-radius: 8px; font-size: 0.7rem; border: 1px solid #800000; color: #800000; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <h1>HFS | European Tour 2026</h1>
     <div class="controls">
-        <label><strong>Naptár nézet:</strong> </label>
+        <label><strong>Válassz hónapot:</strong> </label>
         <select id="monthSelect"></select>
     </div>
+    <div id="status-msg" style="color: blue; margin-bottom: 10px;">Adatok betöltése...</div>
     <div class="calendar-grid" id="calendar"></div>
 
     <script>
         const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=338581218&single=true&output=csv';
         let naptarAdatok = [];
 
-        // Magyar dátumformátum (2026.01.09.) feldolgozása
-        function parseHungarianDate(dStr) {
+        // Extra erős dátum feldolgozó
+        function parseDate(dStr) {
             if (!dStr) return null;
-            const parts = dStr.replace(/\s/g, '').split('.');
+            // Eltávolít minden szóközt és a végén lévő pontot, majd a pontok mentén vág
+            const parts = dStr.trim().replace(/\s/g, '').replace(/\.$/, '').split('.');
             if (parts.length < 3) return null;
-            return new Date(parts[0], parts[1] - 1, parts[2]);
+            // JavaScript Date: év, hónap (0-11), nap
+            return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
         }
 
         async function adatokBetoltese() {
@@ -51,24 +50,31 @@
                 const response = await fetch(csvUrl);
                 const text = await response.text();
                 const lines = text.split('\n');
+                const statusMsg = document.getElementById('status-msg');
                 
-                // Megkeressük a tényleges fejlécsort (ahol az "Event" szó szerepel)
-                let headerIndex = lines.findIndex(line => line.includes('Event'));
-                if (headerIndex === -1) return;
+                let headerIndex = lines.findIndex(line => line.toLowerCase().includes('event'));
+                if (headerIndex === -1) {
+                    statusMsg.innerText = "Hiba: Nem találom az 'Event' fejlécet a táblázatban!";
+                    return;
+                }
 
                 const headers = lines[headerIndex].split(',').map(h => h.trim().replace(/"/g, ''));
-                
                 const rows = [];
                 for (let i = headerIndex + 1; i < lines.length; i++) {
                     const currentline = lines[i].split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
-                    if (currentline.length < headers.length) continue;
+                    if (currentline.length < 3) continue;
                     const obj = {};
                     headers.forEach((h, idx) => obj[h] = currentline[idx]?.trim().replace(/"/g, ''));
                     rows.push(obj);
                 }
+                
                 naptarAdatok = rows;
+                statusMsg.innerText = `Sikeres betöltés: ${rows.length} sor beolvasva.`;
                 renderCalendar(new Date().getMonth());
-            } catch (e) { console.error("Hiba az adatok beolvasásakor:", e); }
+            } catch (e) { 
+                document.getElementById('status-msg').innerText = "Hiba történt a letöltéskor!";
+                console.error(e); 
+            }
         }
 
         function renderCalendar(monthIndex) {
@@ -80,32 +86,37 @@
 
             const year = 2026;
             let firstDay = new Date(year, monthIndex, 1).getDay();
-            firstDay = firstDay === 0 ? 6 : firstDay - 1;
+            firstDay = (firstDay === 0) ? 6 : firstDay - 1;
             const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
 
             for (let i = 0; i < firstDay; i++) calendar.innerHTML += `<div class="day empty"></div>`;
+
+            const nevek = ["Csongi", "Merci", "Mózes", "Luca", "Zoli"];
+            const elfogadott = ["igen", "talán", "talan", "fizetve", "igazolt"];
 
             for (let day = 1; day <= daysInMonth; day++) {
                 const d = new Date(year, monthIndex, day);
                 d.setHours(0,0,0,0);
                 
                 const napi = naptarAdatok.filter(s => {
-                    const start = parseHungarianDate(s["Start date"]);
-                    const end = parseHungarianDate(s["End date"]);
-                    return start && end && d >= start && d <= end;
+                    const start = parseDate(s["Start date"]);
+                    const end = parseDate(s["End date"]);
+                    if (!start || !end) return false;
+                    start.setHours(0,0,0,0);
+                    end.setHours(0,0,0,0);
+                    return d >= start && d <= end;
                 });
 
                 let html = `<div class="day"><span class="day-number">${day}</span>`;
                 napi.forEach(e => {
-                    let tags = "";
-                    ["Csongi", "Merci", "Mózes", "Luca", "Zoli"].forEach(n => {
-                        const s = (e[n] || "").toLowerCase();
-                        if (["igen", "talán", "talan", "fizetve", "igazolt"].includes(s)) {
-                            const cls = s.includes("igen") ? "status-igen" : s.includes("talan") ? "status-talan" : s.includes("fizetve") ? "status-fizetve" : "status-igazolt";
-                            tags += `<span class="person-tag ${cls}" title="${s}">${n}</span>`;
-                        }
-                    });
-                    if (tags) html += `<div class="event-slot"><span class="event-title">${e.Event}</span><div class="attendees">${tags}</div></div>`;
+                    let resztvevok = nevek.filter(n => elfogadott.includes((e[n] || "").toLowerCase()));
+                    if (resztvevok.length > 0) {
+                        html += `<div class="event-slot">
+                            <span class="event-title">${e.Event || 'Verseny'}</span>
+                            <div class="attendees">` + 
+                            resztvevok.map(r => `<span class="person-tag">${r}</span>`).join('') + 
+                            `</div></div>`;
+                    }
                 });
                 calendar.innerHTML += html + `</div>`;
             }
