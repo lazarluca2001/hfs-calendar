@@ -12,6 +12,7 @@
             --status-biztos-border: #2e7d32;
             --status-talan-bg: #fff3e0;
             --status-talan-border: #ef6c00;
+            --empty-gray: #f0f0f0;
         }
         body { font-family: 'Segoe UI', sans-serif; margin: 20px; background: #f4f4f4; }
         .main-layout { max-width: 1600px; margin: 0 auto; }
@@ -36,6 +37,14 @@
             display: flex;
             flex-direction: column;
             gap: 5px;
+        }
+
+        /* Kiszürkített napok stílusa */
+        .empty-day {
+            background-color: var(--empty-gray);
+            background-image: radial-gradient(#dcdcdc 1px, transparent 1px);
+            background-size: 10px 10px;
+            min-height: 140px;
         }
         
         .day-number { font-weight: bold; color: #555; margin-bottom: 5px; display: block; }
@@ -122,11 +131,9 @@
 
     function parseHungarianDate(dStr) {
         if(!dStr || dStr.trim() === "") return null;
-        // Tisztítjuk a bemenetet az esetleges pontoktól a végén
         const cleanStr = dStr.trim().replace(/\.+$/, '');
         const p = cleanStr.split('.');
         if(p.length < 3) return null;
-        // JS Date: év, hónap(0-11), nap
         return new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
     }
 
@@ -149,7 +156,6 @@
                         return validStatuses.some(s => status.includes(s));
                     });
                     if (hasParticipants) {
-                        // Előre feldolgozzuk a dátumokat a hibák elkerülése végett
                         obj._startDate = parseHungarianDate(obj["Start date"]);
                         obj._endDate = parseHungarianDate(obj["End date"]);
                         allWishlistEvents.push(obj);
@@ -172,8 +178,12 @@
         const firstDay = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
         const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
         
-        for(let i = 0; i < firstDay; i++) cal.innerHTML += `<div class="day empty"></div>`;
+        // Előző hónap napjainak kiszürkítése
+        for(let i = 0; i < firstDay; i++) {
+            cal.innerHTML += `<div class="day empty-day"></div>`;
+        }
         
+        // Aktuális hónap napjai
         for(let d = 1; d <= daysInMonth; d++) {
             const current = new Date(year, monthIndex, d); 
             current.setHours(0,0,0,0);
@@ -181,7 +191,6 @@
             
             const dailyEvents = allWishlistEvents.filter(e => {
                 if (!e._startDate || !e._endDate) return false;
-                // Szigorú összehasonlítás az időbélyegek alapján
                 return currentTime >= e._startDate.getTime() && currentTime <= e._endDate.getTime();
             });
 
@@ -205,6 +214,13 @@
                     </div>`;
             });
             cal.innerHTML += html + `</div>`;
+        }
+
+        // Következő hónap elejének kiszürkítése (hogy a rács mindig téglalap legyen)
+        const totalCells = firstDay + daysInMonth;
+        const nextMonthCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+        for(let i = 0; i < nextMonthCells; i++) {
+            cal.innerHTML += `<div class="day empty-day"></div>`;
         }
     }
 
