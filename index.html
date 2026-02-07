@@ -5,43 +5,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HFS European Tour 2026</title>
     <style>
-        :root { --hfs-red: #800000; --status-igen: #4CAF50; --status-talan: #FF9800; --status-fizetve: #2196F3; --status-igazolt: #9C27B0; }
+        :root { 
+            --hfs-red: #800000; 
+            --status-biztos: #4CAF50; /* Zöld az Igen, Fizetve, Igazolt számára */
+            --status-talan: #FF9800;  /* Narancs csak a Talán számára */
+        }
         body { font-family: 'Segoe UI', sans-serif; margin: 20px; background: #f4f4f4; }
-        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h1 { color: var(--hfs-red); text-align: center; border-bottom: 2px solid var(--hfs-red); padding-bottom: 10px; margin-bottom: 15px; }
-        
-        /* Hónapválasztó stílusa */
+        .container { max-width: 1300px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: var(--hfs-red); text-align: center; border-bottom: 2px solid var(--hfs-red); padding-bottom: 10px; }
         .controls { margin-bottom: 20px; text-align: center; }
-        select { padding: 10px 20px; font-size: 16px; border: 2px solid var(--hfs-red); border-radius: 8px; cursor: pointer; background: white; font-weight: bold; color: var(--hfs-red); }
+        select { padding: 10px 20px; font-size: 16px; border: 2px solid var(--hfs-red); border-radius: 8px; cursor: pointer; color: var(--hfs-red); font-weight: bold; }
         
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ddd; border: 1px solid #ddd; }
         .weekday { background: var(--hfs-red); color: white; padding: 10px; text-align: center; font-weight: bold; }
-        .day { background: white; min-height: 150px; padding: 10px; position: relative; }
-        .day-number { font-weight: bold; color: #555; display: block; margin-bottom: 5px; }
-        .empty { background: #f9f9f9; }
+        .day { background: white; min-height: 160px; padding: 8px; position: relative; }
+        .day-number { font-weight: bold; color: #555; margin-bottom: 8px; display: block; }
+        .today { background: #fff9c4 !important; border: 2px solid #fbc02d !important; }
         
-        .event-card { border-left: 4px solid var(--hfs-red); padding: 5px; margin: 5px 0; background: #fffcfc; font-size: 0.82em; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 3px; }
-        .event-name { font-weight: bold; color: #333; display: block; margin-bottom: 4px; }
-        .person-tag { display: flex; align-items: center; gap: 5px; padding: 2px 5px; margin-top: 2px; border-radius: 3px; font-size: 0.85em; font-weight: 500; }
+        .event-card { border-left: 4px solid var(--hfs-red); padding: 6px; margin-bottom: 8px; background: #fffcfc; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .event-name { font-weight: bold; display: block; color: #333; margin-bottom: 5px; font-size: 0.9em; }
         
-        .status-igen { background: #e8f5e9; color: #2e7d32; border-left: 3px solid var(--status-igen); }
-        .status-talan { background: #fff8e1; color: #e65100; border-left: 3px solid var(--status-talan); }
-        .status-fizetve { background: #e3f2fd; color: #0d47a1; border-left: 3px solid var(--status-fizetve); }
-        .status-igazolt { background: #f3e5f5; color: #4a148c; border-left: 3px solid var(--status-igazolt); }
+        .person-tag { padding: 4px 6px; margin-top: 4px; border-radius: 4px; font-size: 0.85em; background: #f8f9fa; border-left: 3px solid #ccc; display: flex; flex-direction: column; gap: 2px; }
         
-        .loader { text-align: center; font-style: italic; color: #666; padding: 20px; }
+        /* Státusz színek szétválasztása */
+        .status-biztos { border-left-color: var(--status-biztos); background: #f1f8f1; color: #2e7d32; }
+        .status-talan { border-left-color: var(--status-talan); background: #fff8e1; color: #e65100; }
+        
+        .result-line { font-weight: bold; display: flex; align-items: center; gap: 4px; }
+        .place-1::before { content: "🥇"; }
+        .place-2::before { content: "🥈"; }
+        .place-3::before { content: "🥉"; }
+        .place-4::before, .place-5::before { content: "🏅"; }
+        
+        .final-tag { background: var(--hfs-red); color: white; padding: 1px 5px; border-radius: 3px; font-size: 0.7em; text-transform: uppercase; margin-left: 4px; font-weight: bold; }
+        .points-tag { font-style: italic; color: #666; font-size: 0.8em; }
+        .level-info { color: #1565C0; font-weight: bold; font-size: 0.75em; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>HFS | European Tour 2026</h1>
-    
-    <div class="controls">
-        <select id="monthSelect"></select>
-    </div>
-
-    <div id="loader" class="loader">Naptár szinkronizálása...</div>
+    <div class="controls"><select id="monthSelect"></select></div>
     <div id="calendar" class="calendar-grid"></div>
 </div>
 
@@ -56,7 +61,6 @@
         "Zoli": { nev: "Dominguez Zoltán", emoji: "🕺" }
     };
 
-    const months = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
     let allEvents = [];
 
     async function init() {
@@ -64,43 +68,38 @@
             const response = await fetch(url);
             const csvText = await response.text();
             const rows = csvText.split('\n').map(row => row.split(',').map(c => c.trim().replace(/"/g, '')));
-            
             const headers = rows[3];
             allEvents = [];
-
             for(let i = 4; i < rows.length; i++) {
                 let obj = {};
                 rows[i].forEach((val, idx) => { obj[headers[idx]] = val; });
                 if(obj.Event) allEvents.push(obj);
             }
-            
-            document.getElementById('loader').style.display = 'none';
             setupMonthSelect();
-            render(new Date().getMonth()); // Az aktuális hónappal indít
-        } catch (e) { 
-            document.getElementById('loader').innerText = "Hiba az adatok beolvasásakor.";
+            render(new Date().getMonth());
+        } catch (e) { console.error(e); }
+    }
+
+    function parseResult(text) {
+        if (!text) return null;
+        const lowText = text.toLowerCase();
+        let result = { place: null, isFinal: false, points: null, level: null, isTalan: lowText.includes("talán") || lowText.includes("talan") };
+        
+        const placeMatch = text.match(/([1-5])\s*\.?\s*hely/i);
+        if (placeMatch) {
+            result.place = placeMatch[1];
+            result.isFinal = false;
+        } else if (lowText.includes("final")) {
+            result.isFinal = true;
         }
-    }
-
-    function setupMonthSelect() {
-        const sel = document.getElementById('monthSelect');
-        const currentMonth = new Date().getMonth();
         
-        months.forEach((m, i) => {
-            const opt = document.createElement('option');
-            opt.value = i;
-            opt.textContent = m;
-            if(i === currentMonth) opt.selected = true;
-            sel.appendChild(opt);
-        });
-        
-        sel.onchange = (e) => render(parseInt(e.target.value));
-    }
+        const pointsMatch = text.match(/\+?\s*(\d+)\s*pont/i);
+        if (pointsMatch) result.points = pointsMatch[1];
 
-    function parseSheetDate(dStr) {
-        if(!dStr || dStr.length < 8) return null;
-        const p = dStr.replace(/\s/g, '').split('.');
-        return new Date(p[0], p[1]-1, p[2]);
+        if (lowText.includes("novice")) result.level = "Novice";
+        if (lowText.includes("inter")) result.level = "Inter";
+
+        return result;
     }
 
     function render(monthIndex) {
@@ -111,36 +110,64 @@
         const year = 2026;
         const firstDay = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
         const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+        const today = new Date();
 
-        // Üres napok a hónap elején
         for(let i=0; i<firstDay; i++) cal.innerHTML += `<div class="day empty"></div>`;
 
         for(let d=1; d<=daysInMonth; d++) {
             const current = new Date(year, monthIndex, d);
             current.setHours(0,0,0,0);
+            const isToday = current.toDateString() === today.toDateString();
 
             const daily = allEvents.filter(e => {
-                const start = parseSheetDate(e["Start date"]);
-                const end = parseSheetDate(e["End date"]);
-                if(!start || !end) return false;
-                return current >= start && current <= end;
+                const sStr = e["Start date"] ? e["Start date"].replace(/\./g, '/') : "";
+                const eStr = e["End date"] ? e["End date"].replace(/\./g, '/') : "";
+                const start = new Date(sStr);
+                const end = new Date(eStr);
+                return !isNaN(start) && current >= start && current <= end;
             });
 
-            let html = `<div class="day"><span class="day-number">${d}</span>`;
+            let html = `<div class="day ${isToday ? 'today' : ''}"><span class="day-number">${d}</span>`;
             daily.forEach(e => {
-                let tagsHtml = "";
+                let tags = "";
                 Object.keys(resztvevokMap).forEach(k => {
-                    const s = e[k]?.toLowerCase() || "";
-                    if(["igen", "talán", "talan", "fizetve", "igazolt"].includes(s)) {
+                    const rawStatus = e[k];
+                    const lowStatus = (rawStatus || "").toLowerCase();
+                    const validStatus = ["igen", "talán", "talan", "fizetve", "igazolt"].some(s => lowStatus.includes(s));
+                    
+                    if (validStatus) {
+                        const res = parseResult(rawStatus);
                         const info = resztvevokMap[k];
-                        const cls = s.includes("talan") ? "status-talan" : `status-${s}`;
-                        tagsHtml += `<div class="person-tag ${cls}">${info.emoji} ${info.nev}</div>`;
+                        const statusClass = res.isTalan ? "status-talan" : "status-biztos";
+                        
+                        tags += `<div class="person-tag ${statusClass}">
+                            <div class="result-line">
+                                ${info.emoji} ${info.nev} 
+                                ${res.place ? `<span class="place-${res.place}">${res.place}.</span>` : ''}
+                                ${res.isFinal ? `<span class="final-tag">Final</span>` : ''}
+                            </div>
+                            ${res.points ? `<div class="points-tag">+${res.points} pont</div>` : ''}
+                            ${res.level ? `<div class="level-info">${res.level}</div>` : ''}
+                        </div>`;
                     }
                 });
-                html += `<div class="event-card"><span class="event-name">${e.Event}</span>${tagsHtml}</div>`;
+                html += `<div class="event-card"><span class="event-name">${e.Event}</span>${tags}</div>`;
             });
             cal.innerHTML += html + `</div>`;
         }
+    }
+
+    function setupMonthSelect() {
+        const sel = document.getElementById('monthSelect');
+        const months = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
+        sel.innerHTML = '';
+        months.forEach((m, i) => {
+            const opt = document.createElement('option');
+            opt.value = i; opt.textContent = m;
+            if(i === new Date().getMonth()) opt.selected = true;
+            sel.appendChild(opt);
+        });
+        sel.onchange = (e) => render(parseInt(e.target.value));
     }
     init();
 </script>
