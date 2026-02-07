@@ -7,20 +7,69 @@
     <style>
         :root { --hfs-red: #800000; --status-biztos: #4CAF50; --status-talan: #FF9800; }
         body { font-family: 'Segoe UI', sans-serif; margin: 20px; background: #f4f4f4; }
-        .main-layout { max-width: 1400px; margin: 0 auto; }
+        .main-layout { max-width: 1600px; margin: 0 auto; }
         .calendar-section { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ddd; border: 1px solid #ddd; }
+        
+        .calendar-grid { 
+            display: grid; 
+            grid-template-columns: repeat(7, 1fr); 
+            gap: 1px; 
+            background: #ddd; 
+            border: 1px solid #ddd; 
+        }
+        
         .weekday { background: var(--hfs-red); color: white; padding: 10px; text-align: center; font-weight: bold; font-size: 0.9em; }
-        .day { background: white; min-height: 140px; padding: 8px; position: relative; }
-        .day-number { font-weight: bold; color: #555; margin-bottom: 8px; display: block; }
+        
+        .day { 
+            background: white; 
+            min-height: 140px; /* Alapmagasság */
+            height: auto;      /* Engedi nyúlni a cellát */
+            padding: 8px; 
+            position: relative; 
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .day-number { font-weight: bold; color: #555; margin-bottom: 5px; display: block; }
         .today { background: #fffde7 !important; border: 2px solid #fbc02d !important; }
-        .event-card { border-left: 4px solid var(--hfs-red); padding: 5px; margin-bottom: 8px; background: #fffcfc; border-radius: 4px; font-size: 0.75em; }
-        .event-title { font-weight: bold; display: block; color: #333; margin-bottom: 3px; }
-        .event-continued { border-left-color: #ccc; background: #fafafa; }
-        .event-continued .event-title { font-weight: normal; font-style: italic; color: #777; }
-        .person-tag { padding: 3px 5px; margin-top: 3px; border-radius: 4px; font-size: 0.85em; border-left: 3px solid #ccc; background: #f8f9fa; display: flex; align-items: center; gap: 4px; }
-        .status-biztos { border-left-color: var(--status-biztos); }
-        .status-talan { border-left-color: var(--status-talan); }
+
+        /* Színes Event Kártya */
+        .event-card { 
+            padding: 6px; 
+            border-radius: 6px; 
+            font-size: 0.75em; 
+            color: white; /* Fehér szöveg a színes háttéren */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid rgba(0,0,0,0.2);
+        }
+        
+        .event-title { font-weight: bold; display: block; margin-bottom: 4px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
+        
+        /* Résztvevők konténere a kártyán belül */
+        .participants-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 4px;
+        }
+
+        .person-tag { 
+            padding: 2px 5px; 
+            border-radius: 4px; 
+            font-size: 0.9em; 
+            background: rgba(255, 255, 255, 0.9); /* Világos háttér a sötét kártyán */
+            color: #333;
+            display: flex; 
+            align-items: center; 
+            gap: 3px;
+            border-bottom: 2px solid #ccc;
+        }
+        
+        .status-biztos { border-bottom-color: var(--status-biztos); }
+        .status-talan { border-bottom-color: var(--status-talan); }
+
+        select { padding: 10px; border-radius: 8px; border: 2px solid var(--hfs-red); font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -29,7 +78,7 @@
     <div class="calendar-section">
         <h1 style="text-align:center; color:var(--hfs-red);">HFS | European Tour 2026</h1>
         <div style="text-align:center; margin-bottom:20px;">
-            <select id="monthSelect" style="padding:10px; border-radius:8px; border:2px solid var(--hfs-red); font-weight:bold;"></select>
+            <select id="monthSelect"></select>
         </div>
         <div id="calendar" class="calendar-grid"></div>
     </div>
@@ -50,20 +99,28 @@
     let allWishlistEvents = [];
     let pastResults = [];
 
+    // Szín generátor az esemény neve alapján
+    function getEventColor(eventName) {
+        let hash = 0;
+        for (let i = 0; i < eventName.length; i++) {
+            hash = eventName.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        // Pasztell/Sötétebb színek a jó olvashatóságért
+        const h = Math.abs(hash % 360);
+        return `hsl(${h}, 60%, 35%)`;
+    }
+
     function getAliasByName(name) {
         if (!name) return null;
         const normalized = name.trim().toLowerCase();
         for (const [alias, data] of Object.entries(resztvevokMap)) {
-            if (normalized.includes(alias.toLowerCase()) || 
-                normalized.includes(data.fullName.toLowerCase())) {
-                return alias;
-            }
+            if (normalized.includes(alias.toLowerCase()) || normalized.includes(data.fullName.toLowerCase())) return alias;
         }
         return null;
     }
 
     function parseHungarianDate(dStr) {
-        if(!dStr || dStr.trim() === "") return null;
+        if(!dStr) return null;
         const p = dStr.replace(/\s/g, '').split('.');
         if(p.length < 3) return null;
         return new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
@@ -74,7 +131,6 @@
             const [resW, resE] = await Promise.all([fetch(wishlistUrl), fetch(eredmenyekUrl)]);
             const csvW = await resW.text(), csvE = await resE.text();
             
-            // Wishlist feldolgozás
             const rowsW = csvW.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
             const headersW = rowsW[3];
             allWishlistEvents = [];
@@ -84,37 +140,25 @@
                 if(obj.Event) allWishlistEvents.push(obj);
             }
 
-            // Eredmények feldolgozása (csak az érmek megjelenítéséhez a naptárban)
             const rowsE = csvE.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
             const headersE = rowsE[3];
             const findIdx = (names) => headersE.findIndex(h => names.some(n => h.toLowerCase().includes(n.toLowerCase())));
-            
-            const idxName = findIdx(['name', 'név']);
-            const idxEvent = findIdx(['event', 'esemény']);
-            const idxFinal = findIdx(['final', 'helyezés']);
+            const idxName = findIdx(['name', 'név']), idxEvent = findIdx(['event', 'esemény']), idxFinal = findIdx(['final', 'helyezés']);
 
             pastResults = [];
             for(let i = 4; i < rowsE.length; i++) {
                 const r = rowsE[i];
-                if(!r[idxName] || r[idxName] === "") continue;
                 const alias = getAliasByName(r[idxName]);
-                if (alias) {
-                    pastResults.push({
-                        Alias: alias,
-                        Event: r[idxEvent] || "",
-                        Final: parseInt(r[idxFinal]) || 0
-                    });
-                }
+                if (alias) pastResults.push({ Alias: alias, Event: r[idxEvent] || "", Final: parseInt(r[idxFinal]) || 0 });
             }
 
             setupMonthSelect();
             render(new Date().getMonth());
-        } catch (e) { console.error("Hiba:", e); }
+        } catch (e) { console.error(e); }
     }
 
     function render(monthIndex) {
         const cal = document.getElementById('calendar'); 
-        if (!cal) return;
         cal.innerHTML = '';
         const year = 2026;
         ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"].forEach(d => cal.innerHTML += `<div class="weekday">${d}</div>`);
@@ -135,23 +179,24 @@
             let html = `<div class="day ${isToday ? 'today' : ''}"><span class="day-number">${d}</span>`;
             
             daily.forEach(e => {
-                const startD = parseHungarianDate(e["Start date"]);
-                const isFirstDay = startD && current.getTime() === startD.getTime();
-                if (isFirstDay) {
-                    let tags = "";
-                    Object.entries(resztvevokMap).forEach(([alias, info]) => {
-                        const status = (e[alias] || "").toLowerCase();
-                        if (status.includes("igen") || status.includes("talan") || status.includes("igazolt")) {
-                            const res = pastResults.find(r => r.Alias === alias && r.Event.trim().toLowerCase() === e.Event.trim().toLowerCase());
-                            const p = res ? res.Final : null;
-                            let icon = (p === 1) ? "🥇" : (p === 2) ? "🥈" : (p === 3) ? "🥉" : "";
-                            tags += `<div class="person-tag ${status.includes("talan") ? 'status-talan' : 'status-biztos'}">${info.emoji} ${alias} ${icon}</div>`;
-                        }
-                    });
-                    html += `<div class="event-card"><span class="event-title">${e.Event}</span>${tags}</div>`;
-                } else {
-                    html += `<div class="event-card event-continued"><span class="event-title">${e.Event}</span></div>`;
-                }
+                const eventColor = getEventColor(e.Event);
+                let tags = "";
+                
+                Object.entries(resztvevokMap).forEach(([alias, info]) => {
+                    const status = (e[alias] || "").toLowerCase();
+                    if (status.includes("igen") || status.includes("talan") || status.includes("igazolt")) {
+                        const res = pastResults.find(r => r.Alias === alias && r.Event.trim().toLowerCase() === e.Event.trim().toLowerCase());
+                        let medal = (res?.Final === 1) ? "🥇" : (res?.Final === 2) ? "🥈" : (res?.Final === 3) ? "🥉" : "";
+                        tags += `<div class="person-tag ${status.includes("talan") ? 'status-talan' : 'status-biztos'}">${info.emoji} ${alias}${medal}</div>`;
+                    }
+                });
+
+                // Minden nap látszódnak a nevek, de a fejléc csak az első napon vastagabb
+                html += `
+                    <div class="event-card" style="background-color: ${eventColor}">
+                        <span class="event-title">${e.Event}</span>
+                        <div class="participants-container">${tags}</div>
+                    </div>`;
             });
             cal.innerHTML += html + `</div>`;
         }
@@ -160,7 +205,6 @@
     function setupMonthSelect() {
         const sel = document.getElementById('monthSelect');
         const mNames = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
-        sel.innerHTML = "";
         mNames.forEach((m, i) => {
             const opt = document.createElement('option'); opt.value = i; opt.textContent = m;
             if(i === new Date().getMonth()) opt.selected = true;
