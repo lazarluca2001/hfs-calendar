@@ -5,7 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HFS European Tour 2026</title>
     <style>
-        :root { --hfs-red: #800000; }
+        :root {
+            --hfs-red: #800000;
+            --status-igen: #4CAF50;
+            --status-talan: #FF9800;
+            --status-fizetve: #2196F3;
+            --status-igazolt: #9C27B0;
+        }
         body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
         .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         h1 { color: var(--hfs-red); text-align: center; border-bottom: 2px solid var(--hfs-red); padding-bottom: 10px; }
@@ -19,19 +25,20 @@
         .event-card {
             background: #fff; border-left: 4px solid var(--hfs-red);
             padding: 6px; margin-bottom: 8px; border-radius: 4px;
-            font-size: 0.85em; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            font-size: 0.82em; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         .event-name { font-weight: bold; display: block; color: #333; margin-bottom: 4px; }
-        .attendees { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
-        .tag {
-            padding: 2px 6px; border-radius: 4px; font-size: 0.75em;
-            font-weight: bold; color: white; border: 1px solid rgba(0,0,0,0.1);
+        .attendees { display: flex; flex-direction: column; gap: 3px; margin-top: 5px; }
+        .person-tag {
+            padding: 2px 6px; border-radius: 4px; font-size: 0.9em;
+            font-weight: 500; display: flex; align-items: center; gap: 5px;
         }
-        .tag-csongi { background: #444; }
-        .tag-merci { background: #e91e63; }
-        .tag-mozes { background: #3f51b5; }
-        .tag-luca { background: #009688; }
-        .tag-zoli { background: #795548; }
+        /* Státusz színek a nevek mellé */
+        .status-igen { color: #2e7d32; border-left: 3px solid var(--status-igen); background: #f1f8f1; }
+        .status-talan { color: #e65100; border-left: 3px solid var(--status-talan); background: #fff8e1; }
+        .status-fizetve { color: #0d47a1; border-left: 3px solid var(--status-fizetve); background: #e3f2fd; }
+        .status-igazolt { color: #4a148c; border-left: 3px solid var(--status-igazolt); background: #f3e5f5; }
+        
         .loader { text-align: center; font-style: italic; color: #666; padding: 20px; }
     </style>
 </head>
@@ -46,11 +53,20 @@
 
 <script>
     const webAppUrl = 'https://script.google.com/macros/s/AKfycbx9e75CADNirX7MZW1UhFyu7Pv2bqIOsIMTregdmvZE5KXi1aqLyuzuJ2iFyDri0SjO/exec';
+    
+    // Résztvevők konfigurációja
+    const resztvevokMap = {
+        "Csongi": { nev: "Ferenczi Csongor", emoji: "🌈" },
+        "Merci": { nev: "Angyal Mercédesz", emoji: "💃" },
+        "Mózes": { nev: "Bende Márton", emoji: "🦄" },
+        "Luca": { nev: "Lázár Luca", emoji: "🐶" },
+        "Zoli": { nev: "Dominguez Zoltán", emoji: "🕺" }
+    };
+
     let naptarAdatok = [];
     const months = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
     const weekdays = ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"];
 
-    // Segédfüggvény a táblázatodban lévő dátumokhoz: 2026.01.09.
     function parseSheetDate(dStr) {
         if (!dStr) return null;
         if (dStr instanceof Date) return dStr;
@@ -95,7 +111,6 @@
 
         for (let i = 0; i < firstDay; i++) container.innerHTML += `<div class="day empty"></div>`;
 
-        const nevek = ["Csongi", "Merci", "Mózes", "Luca", "Zoli"];
         const statuszok = ["igen", "talán", "talan", "fizetve", "igazolt"];
 
         for (let day = 1; day <= daysInMonth; day++) {
@@ -112,16 +127,24 @@
             });
 
             let dayHtml = `<div class="day"><span class="day-number">${day}</span>`;
+            
             napiEsemenyek.forEach(ev => {
-                let tags = "";
-                nevek.forEach(n => {
-                    const s = (ev[n] || "").toString().toLowerCase();
-                    if(statuszok.includes(s)) {
-                        tags += `<span class="tag tag-${n.toLowerCase()}">${n[0]}</span> `;
+                let attendeeListHtml = "";
+                Object.keys(resztvevokMap).forEach(kulcs => {
+                    const statuszRaw = (ev[kulcs] || "").toString().toLowerCase();
+                    if(statuszok.includes(statuszRaw)) {
+                        const info = resztvevokMap[kulcs];
+                        const statuszClass = statuszRaw.includes("talan") ? "status-talan" : `status-${statuszRaw}`;
+                        attendeeListHtml += `<div class="person-tag ${statuszClass}">${info.emoji} ${info.nev}</div>`;
                     }
                 });
-                if(tags !== "") {
-                    dayHtml += `<div class="event-card"><span class="event-name">${ev.Event}</span><div class="attendees">${tags}</div></div>`;
+
+                if(attendeeListHtml !== "") {
+                    dayHtml += `
+                        <div class="event-card">
+                            <span class="event-name">${ev.Event}</span>
+                            <div class="attendees">${attendeeListHtml}</div>
+                        </div>`;
                 }
             });
             container.innerHTML += dayHtml + `</div>`;
