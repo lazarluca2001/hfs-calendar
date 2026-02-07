@@ -1,45 +1,156 @@
-async function init() {
-    try {
-        const [resW, resE] = await Promise.all([fetch(wishlistUrl), fetch(eredmenyekUrl)]);
-        const csvW = await resW.text(), csvE = await resE.text();
-        
-        // 1. Wishlist feldolgozása
-        const rowsW = csvW.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
-        const headersW = rowsW[3];
-        for(let i = 4; i < rowsW.length; i++) {
-            let obj = {}; headersW.forEach((h, idx) => { if(h) obj[h] = rowsW[i][idx]; });
-            if(obj.Event) allWishlistEvents.push(obj);
-        }
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HFS European Tour 2026</title>
+    <style>
+        :root { --hfs-red: #800000; --status-biztos: #4CAF50; --status-talan: #FF9800; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 20px; background: #f4f4f4; }
+        .main-layout { display: flex; gap: 20px; max-width: 1750px; margin: 0 auto; align-items: flex-start; }
+        .calendar-section { flex: 2.8; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .sidebar { flex: 1.2; background: #eee; padding: 15px; border-radius: 12px; position: sticky; top: 20px; max-height: 95vh; overflow-y: auto; }
+        .leaderboard-box { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        h3 { font-size: 0.9em; color: white; background: var(--hfs-red); padding: 8px; border-radius: 5px; margin-top: 0; text-align: center; text-transform: uppercase; letter-spacing: 1px; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ddd; border: 1px solid #ddd; }
+        .weekday { background: var(--hfs-red); color: white; padding: 10px; text-align: center; font-weight: bold; font-size: 0.9em; }
+        .day { background: white; min-height: 140px; padding: 8px; position: relative; }
+        .day-number { font-weight: bold; color: #555; margin-bottom: 8px; display: block; }
+        .today { background: #fffde7 !important; border: 2px solid #fbc02d !important; }
+        .event-card { border-left: 4px solid var(--hfs-red); padding: 5px; margin-bottom: 8px; background: #fffcfc; border-radius: 4px; font-size: 0.75em; }
+        .event-title { font-weight: bold; display: block; color: #333; margin-bottom: 3px; }
+        .event-continued { border-left-color: #ccc; background: #fafafa; }
+        .event-continued .event-title { font-weight: normal; font-style: italic; color: #777; }
+        .person-tag { padding: 3px 5px; margin-top: 3px; border-radius: 4px; font-size: 0.85em; border-left: 3px solid #ccc; background: #f8f9fa; display: flex; align-items: center; gap: 4px; }
+        .status-biztos { border-left-color: var(--status-biztos); }
+        .status-talan { border-left-color: var(--status-talan); }
+        .leaderboard-item { display: flex; align-items: center; padding: 8px 5px; border-bottom: 1px solid #eee; gap: 10px; }
+        .leader-info { flex-grow: 1; }
+        .leader-name { font-weight: bold; display: block; font-size: 0.85em; }
+        .leader-stats { font-size: 0.75em; color: #666; }
+        .leader-medals { font-size: 1.1em; white-space: nowrap; }
+    </style>
+</head>
+<body>
 
-        // 2. Eredmények feldolgozása - OSZLOPKERESŐVEL
-        const rowsE = csvE.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
-        const headersE = rowsE[4]; // Az 5. sor a fejléc (index 4)
+<div class="main-layout">
+    <div class="calendar-section">
+        <h1 style="text-align:center; color:var(--hfs-red);">HFS | European Tour 2026</h1>
+        <div style="text-align:center; margin-bottom:20px;">
+            <select id="monthSelect" style="padding:10px; border-radius:8px; border:2px solid var(--hfs-red); font-weight:bold;"></select>
+        </div>
+        <div id="calendar" class="calendar-grid"></div>
+    </div>
+    <div class="sidebar">
+        <h2 style="text-align:center;">🏆 Divízió Ranglisták</h2>
+        <div id="dynamicLeaderboards">Adatok betöltése...</div>
+    </div>
+</div>
 
-        // Megkeressük, melyik oszlopban mi van
-        const idxName = headersE.findIndex(h => h.toLowerCase().includes('name'));
-        const idxDiv = headersE.findIndex(h => h.toLowerCase().includes('division') || h.toLowerCase().includes('level'));
-        const idxEvent = headersE.findIndex(h => h.toLowerCase().includes('event'));
-        const idxDate = headersE.findIndex(h => h.toLowerCase().includes('date'));
-        const idxFinal = headersE.findIndex(h => h.toLowerCase().includes('final'));
-        const idxPoint = headersE.findIndex(h => h.toLowerCase().includes('point'));
+<script>
+    const wishlistUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=338581218&single=true&output=csv';
+    const eredmenyekUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=1410406652&single=true&output=csv';
 
-        console.log("Oszlop indexek:", {idxName, idxDiv, idxEvent, idxPoint}); // Debughoz
+    const resztvevokMap = {
+        "Ferenczi Csongor": { emoji: "🌈", alias: "Csongi" },
+        "Angyal Mercédesz": { emoji: "🦆", alias: "Merci" },
+        "Bende Márton": { emoji: "🦄", alias: "Mózes" },
+        "Lázár Luca": { emoji: "🐶", alias: "Luca" },
+        "Dominguez Zoltán": { emoji: "🕺", alias: "Zoli" }
+    };
 
-        for(let i = 5; i < rowsE.length; i++) {
-            const r = rowsE[i];
-            if(!r[idxName]) continue;
+    const divisionOrder = ["Newcomer", "Novice", "Intermediate", "Advanced", "All-Star", "Champion"];
+    let allWishlistEvents = [];
+    let pastResults = [];
+
+    function parseHungarianDate(dStr) {
+        if(!dStr || dStr.trim() === "") return null;
+        const p = dStr.replace(/\s/g, '').split('.');
+        if(p.length < 3) return null;
+        return new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+    }
+
+    async function init() {
+        try {
+            const [resW, resE] = await Promise.all([fetch(wishlistUrl), fetch(eredmenyekUrl)]);
+            const csvW = await resW.text(), csvE = await resE.text();
             
-            pastResults.push({
-                Name: r[idxName].trim(),
-                Level: r[idxDiv] ? r[idxDiv].trim() : "Ismeretlen",
-                Event: r[idxEvent] ? r[idxEvent].trim() : "",
-                Date: r[idxDate] ? r[idxDate].trim() : "",
-                Final: r[idxFinal] ? r[idxFinal].trim() : "",
-                Point: r[idxPoint] ? r[idxPoint].trim() : "0"
-            });
-        }
+            const rowsW = csvW.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
+            const headersW = rowsW[3];
+            for(let i = 4; i < rowsW.length; i++) {
+                let obj = {}; headersW.forEach((h, idx) => { if(h) obj[h] = rowsW[i][idx]; });
+                if(obj.Event) allWishlistEvents.push(obj);
+            }
 
-        setupMonthSelect();
-        render(new Date().getMonth());
-    } catch (e) { console.error("Hiba:", e); }
-}
+            const rowsE = csvE.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
+            // JAVÍTÁS: A fejléc a 4. sorban van (index 3)
+            const headersE = rowsE[3]; 
+
+            const findIdx = (names) => headersE.findIndex(h => names.some(n => h.toLowerCase().includes(n.toLowerCase())));
+            
+            const idxName = findIdx(['Name']);
+            const idxDiv = findIdx(['Division', 'Level', 'Cím']);
+            const idxEvent = findIdx(['Event']);
+            const idxDate = findIdx(['Date']);
+            const idxFinal = findIdx(['Final', 'Helyezés']);
+            const idxPoint = findIdx(['Point', 'Pont']);
+
+            // Adatok feldolgozása az 5. sortól (index 4)
+            for(let i = 4; i < rowsE.length; i++) {
+                const r = rowsE[i];
+                if(!r[idxName] || r[idxName] === "Name") continue;
+                
+                pastResults.push({
+                    Name: r[idxName].trim(),
+                    Level: r[idxDiv] ? r[idxDiv].trim() : "Ismeretlen",
+                    Event: r[idxEvent] ? r[idxEvent].trim() : "",
+                    Date: r[idxDate] ? r[idxDate].trim() : "",
+                    Final: r[idxFinal] ? r[idxFinal].trim() : "",
+                    Point: r[idxPoint] ? r[idxPoint].trim().replace(/[^0-9]/g, '') : "0"
+                });
+            }
+
+            setupMonthSelect();
+            render(new Date().getMonth());
+        } catch (e) { console.error("Hiba:", e); }
+    }
+
+    function renderLeaderboards() {
+        const container = document.getElementById('dynamicLeaderboards');
+        let divData = {};
+
+        pastResults.forEach(r => {
+            const div = r.Level;
+            if(!divData[div]) {
+                divData[div] = {};
+                Object.keys(resztvevokMap).forEach(k => divData[div][k] = { gold: 0, silver: 0, bronze: 0, points: 0 });
+            }
+            if(resztvevokMap[r.Name]) {
+                const place = parseInt(r.Final);
+                if(place === 1) divData[div][r.Name].gold++;
+                else if(place === 2) divData[div][r.Name].silver++;
+                else if(place === 3) divData[div][r.Name].bronze++;
+                
+                divData[div][r.Name].points += parseInt(r.Point) || 0;
+            }
+        });
+
+        container.innerHTML = "";
+        divisionOrder.forEach(divName => {
+            if(divData[divName]) {
+                const stats = divData[divName];
+                const sorted = Object.keys(resztvevokMap).filter(n => stats[n].points > 0 || stats[n].gold > 0).sort((a,b) => stats[b].points - stats[a].points);
+                if(sorted.length > 0) {
+                    let box = `<div class="leaderboard-box"><h3>${divName}</h3>`;
+                    sorted.forEach(n => {
+                        box += `<div class="leaderboard-item"><div style="font-size: 1.2em">${resztvevokMap[n].emoji}</div><div class="leader-info"><span class="leader-name">${resztvevokMap[n].alias}</span><span class="leader-stats">${stats[n].points} pont</span></div><div class="leader-medals">${'🥇'.repeat(stats[n].gold)}${'🥈'.repeat(stats[k].silver)}${'🥉'.repeat(stats[k].bronze)}</div></div>`;
+                    });
+                    container.innerHTML += box + `</div>`;
+                }
+            }
+        });
+    }
+    // ... (többi függvény változatlan) ...
+</script>
+</body>
+</html>
