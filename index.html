@@ -51,7 +51,6 @@
     const wishlistUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=338581218&single=true&output=csv';
     const eredmenyekUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=1410406652&single=true&output=csv';
 
-    // Itt definiáljuk, hogy ki kicsoda
     const resztvevokMap = {
         "Csongi": { emoji: "🌈", fullName: "Ferenczi Csongor" },
         "Merci": { emoji: "🦆", fullName: "Angyal Mercédesz" },
@@ -64,7 +63,6 @@
     let allWishlistEvents = [];
     let pastResults = [];
 
-    // Név-összekötő segédfüggvény
     function getAliasByName(name) {
         if (!name) return null;
         const normalized = name.trim().toLowerCase();
@@ -109,9 +107,7 @@
 
             for(let i = 4; i < rowsE.length; i++) {
                 const r = rowsE[i];
-                if(!r[idxName]) continue;
-                
-                // Megkeressük a becenevet a teljes név alapján
+                if(!r[idxName] || r[idxName] === "Name") continue;
                 const alias = getAliasByName(r[idxName]);
                 if (!alias) continue;
 
@@ -132,13 +128,16 @@
 
     function renderLeaderboards() {
         const container = document.getElementById('dynamicLeaderboards');
+        if (!container) return;
         let divData = {};
 
         pastResults.forEach(r => {
             const div = r.Level;
             if(!divData[div]) {
                 divData[div] = {};
-                Object.keys(resztvevokMap).forEach(k => divData[div][k] = { gold: 0, silver: 0, bronze: 0, points: 0 });
+                Object.keys(resztvevokMap).forEach(alias => {
+                    divData[div][alias] = { gold: 0, silver: 0, bronze: 0, points: 0 };
+                });
             }
             const alias = r.Alias;
             const place = parseInt(r.Final);
@@ -152,7 +151,10 @@
         divisionOrder.forEach(divName => {
             if(divData[divName]) {
                 const stats = divData[divName];
-                const sorted = Object.keys(resztvevokMap).filter(a => stats[a].points > 0 || stats[a].gold > 0).sort((a,b) => stats[b].points - stats[a].points);
+                const sorted = Object.keys(resztvevokMap)
+                    .filter(a => stats[a].points > 0 || stats[a].gold > 0 || stats[a].silver > 0 || stats[a].bronze > 0)
+                    .sort((a,b) => stats[b].points - stats[a].points);
+                
                 if(sorted.length > 0) {
                     let box = `<div class="leaderboard-box"><h3>${divName}</h3>`;
                     sorted.forEach(a => {
@@ -172,7 +174,9 @@
     }
 
     function render(monthIndex) {
-        const cal = document.getElementById('calendar'); cal.innerHTML = '';
+        const cal = document.getElementById('calendar'); 
+        if (!cal) return;
+        cal.innerHTML = '';
         const year = 2026;
         ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"].forEach(d => cal.innerHTML += `<div class="weekday">${d}</div>`);
         const firstDay = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
@@ -187,7 +191,8 @@
             });
             let html = `<div class="day ${current.toDateString() === new Date().toDateString() ? 'today' : ''}"><span class="day-number">${d}</span>`;
             daily.forEach(e => {
-                const isFirstDay = current.getTime() === parseHungarianDate(e["Start date"]).getTime();
+                const startD = parseHungarianDate(e["Start date"]);
+                const isFirstDay = startD && current.getTime() === startD.getTime();
                 if (isFirstDay) {
                     let tags = "";
                     Object.entries(resztvevokMap).forEach(([alias, info]) => {
@@ -211,7 +216,9 @@
 
     function setupMonthSelect() {
         const sel = document.getElementById('monthSelect');
+        if (!sel) return;
         const mNames = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
+        sel.innerHTML = "";
         mNames.forEach((m, i) => {
             const opt = document.createElement('option'); opt.value = i; opt.textContent = m;
             if(i === new Date().getMonth()) opt.selected = true;
