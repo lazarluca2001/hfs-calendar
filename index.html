@@ -8,30 +8,22 @@
         :root { --hfs-red: #800000; --status-biztos: #4CAF50; --status-talan: #FF9800; }
         body { font-family: 'Segoe UI', sans-serif; margin: 20px; background: #f4f4f4; }
         .main-layout { display: flex; gap: 20px; max-width: 1750px; margin: 0 auto; align-items: flex-start; }
-        
         .calendar-section { flex: 2.8; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .sidebar { flex: 1.2; background: #eee; padding: 15px; border-radius: 12px; position: sticky; top: 20px; max-height: 95vh; overflow-y: auto; }
-        
         .leaderboard-box { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         h3 { font-size: 0.9em; color: white; background: var(--hfs-red); padding: 8px; border-radius: 5px; margin-top: 0; text-align: center; text-transform: uppercase; letter-spacing: 1px; }
-        
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ddd; border: 1px solid #ddd; }
         .weekday { background: var(--hfs-red); color: white; padding: 10px; text-align: center; font-weight: bold; font-size: 0.9em; }
         .day { background: white; min-height: 140px; padding: 8px; position: relative; }
         .day-number { font-weight: bold; color: #555; margin-bottom: 8px; display: block; }
         .today { background: #fffde7 !important; border: 2px solid #fbc02d !important; }
-        .empty { background: #f9f9f9; }
-
-        /* Esemény kártyák */
         .event-card { border-left: 4px solid var(--hfs-red); padding: 5px; margin-bottom: 8px; background: #fffcfc; border-radius: 4px; font-size: 0.75em; }
         .event-title { font-weight: bold; display: block; color: #333; margin-bottom: 3px; }
         .event-continued { border-left-color: #ccc; background: #fafafa; }
         .event-continued .event-title { font-weight: normal; font-style: italic; color: #777; }
-
         .person-tag { padding: 3px 5px; margin-top: 3px; border-radius: 4px; font-size: 0.85em; border-left: 3px solid #ccc; background: #f8f9fa; display: flex; align-items: center; gap: 4px; }
         .status-biztos { border-left-color: var(--status-biztos); }
         .status-talan { border-left-color: var(--status-talan); }
-
         .leaderboard-item { display: flex; align-items: center; padding: 8px 5px; border-bottom: 1px solid #eee; gap: 10px; }
         .leader-info { flex-grow: 1; }
         .leader-name { font-weight: bold; display: block; font-size: 0.85em; }
@@ -49,7 +41,6 @@
         </div>
         <div id="calendar" class="calendar-grid"></div>
     </div>
-
     <div class="sidebar">
         <h2 style="text-align:center;">🏆 Divízió Ranglisták</h2>
         <div id="dynamicLeaderboards">Adatok betöltése...</div>
@@ -72,7 +63,7 @@
     let allWishlistEvents = [];
     let pastResults = [];
 
-    function parseDate(dStr) {
+    function parseHungarianDate(dStr) {
         if(!dStr || dStr.trim() === "") return null;
         const p = dStr.replace(/\s/g, '').split('.');
         if(p.length < 3) return null;
@@ -85,23 +76,23 @@
             const csvW = await resW.text(), csvE = await resE.text();
             
             const rowsW = csvW.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
-            const headersW = rowsW[3];
             for(let i = 4; i < rowsW.length; i++) {
-                let obj = {}; headersW.forEach((h, idx) => { if(h) obj[h] = rowsW[i][idx]; });
+                let obj = {}; rowsW[3].forEach((h, idx) => { if(h) obj[h] = rowsW[i][idx]; });
                 if(obj.Event) allWishlistEvents.push(obj);
             }
 
             const rowsE = csvE.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
             for(let i = 5; i < rowsE.length; i++) {
                 const r = rowsE[i];
-                if(r.length < 12) continue;
+                if(r.length < 12) continue; // Biztosítjuk, hogy van elég oszlop
+                
                 pastResults.push({
-                    Name: r[1],      // B
-                    Level: r[2],     // C (Divízió)
-                    Event: r[3],     // D
-                    Date: r[4],      // E
-                    Final: r[10],    // K
-                    Point: r[11]     // L
+                    Name: r[1] ? r[1].trim() : "",      // B oszlop
+                    Level: r[2] ? r[2].trim() : "",     // C oszlop
+                    Event: r[3] ? r[3].trim() : "",     // D oszlop
+                    Date: r[4] ? r[4].trim() : "",      // E oszlop
+                    Final: r[10] ? r[10].trim() : "",   // K oszlop
+                    Point: r[11] ? r[11].trim() : "0"   // L oszlop
                 });
             }
 
@@ -125,7 +116,10 @@
                 if(place === 1) divData[div][r.Name].gold++;
                 else if(place === 2) divData[div][r.Name].silver++;
                 else if(place === 3) divData[div][r.Name].bronze++;
-                divData[div][r.Name].points += (parseInt(r.Point) || 0);
+                
+                // Kiszűrjük az esetleges nem szám karaktereket a pontból
+                const pValue = parseInt(r.Point.replace(/[^0-9]/g, '')) || 0;
+                divData[div][r.Name].points += pValue;
             }
         });
 
@@ -149,33 +143,25 @@
         const cal = document.getElementById('calendar'); cal.innerHTML = '';
         const year = 2026;
         ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"].forEach(d => cal.innerHTML += `<div class="weekday">${d}</div>`);
-        
         const firstDay = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
         const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-        const today = new Date();
-        
         for(let i = 0; i < firstDay; i++) cal.innerHTML += `<div class="day empty"></div>`;
         
         for(let d = 1; d <= daysInMonth; d++) {
             const current = new Date(year, monthIndex, d); current.setHours(0,0,0,0);
             const daily = allWishlistEvents.filter(e => {
-                const s = parseDate(e["Start date"]), end = parseDate(e["End date"]);
+                const s = parseHungarianDate(e["Start date"]), end = parseHungarianDate(e["End date"]);
                 return s && end && current >= s && current <= end;
             });
-
-            let html = `<div class="day ${current.toDateString() === today.toDateString() ? 'today' : ''}"><span class="day-number">${d}</span>`;
-            
+            let html = `<div class="day ${current.toDateString() === new Date().toDateString() ? 'today' : ''}"><span class="day-number">${d}</span>`;
             daily.forEach(e => {
-                const startDate = parseDate(e["Start date"]);
-                const isFirstDay = current.getTime() === startDate.getTime();
-
+                const isFirstDay = current.getTime() === parseHungarianDate(e["Start date"]).getTime();
                 if (isFirstDay) {
-                    // Első nap: Esemény név + Nevek + Érmek
                     let tags = "";
                     Object.entries(resztvevokMap).forEach(([fullName, info]) => {
                         const status = (e[info.alias] || "").toLowerCase();
                         if (status.includes("igen") || status.includes("talan") || status.includes("igazolt")) {
-                            const res = pastResults.find(r => r.Name === fullName && r.Event.trim().toLowerCase() === e.Event.trim().toLowerCase() && parseDate(r.Date)?.getFullYear() === year);
+                            const res = pastResults.find(r => r.Name === fullName && r.Event.trim().toLowerCase() === e.Event.trim().toLowerCase() && parseHungarianDate(r.Date)?.getFullYear() === year);
                             const p = res ? parseInt(res.Final) : null;
                             let icon = (p === 1) ? "🥇" : (p === 2) ? "🥈" : (p === 3) ? "🥉" : "";
                             tags += `<div class="person-tag ${status.includes("talan") ? 'status-talan' : 'status-biztos'}">${info.emoji} ${info.alias} ${icon}</div>`;
@@ -183,7 +169,6 @@
                     });
                     html += `<div class="event-card"><span class="event-title">${e.Event}</span>${tags}</div>`;
                 } else {
-                    // Többi nap: Csak az esemény neve
                     html += `<div class="event-card event-continued"><span class="event-title">${e.Event}</span></div>`;
                 }
             });
