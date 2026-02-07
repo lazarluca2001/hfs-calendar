@@ -5,196 +5,209 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HFS European Tour 2026</title>
     <style>
-        :root { --hfs-red: #800000; --status-biztos: #4CAF50; --status-talan: #FF9800; }
+        :root { 
+            --hfs-red: #800000; 
+            --status-biztos: #4CAF50; 
+            --status-talan: #FF9800;
+        }
         body { font-family: 'Segoe UI', sans-serif; margin: 20px; background: #f4f4f4; }
-        .main-layout { display: flex; gap: 20px; max-width: 1700px; margin: 0 auto; align-items: flex-start; }
-        .calendar-section { flex: 2.5; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .sidebar { flex: 1; background: #eee; padding: 15px; border-radius: 12px; position: sticky; top: 20px; max-height: 95vh; overflow-y: auto; }
         
-        .leaderboard-box { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        h1, h2 { color: var(--hfs-red); text-align: center; border-bottom: 2px solid var(--hfs-red); padding-bottom: 10px; margin-top: 0; }
-        h3 { font-size: 0.9em; color: white; background: var(--hfs-red); padding: 6px; border-radius: 5px; margin-top: 0; text-align: center; text-transform: uppercase; letter-spacing: 1px; }
+        /* Kétoszlopos elrendezés */
+        .main-layout { 
+            display: flex; 
+            gap: 20px; 
+            max-width: 1600px; 
+            margin: 0 auto; 
+            align-items: flex-start;
+        }
+
+        .calendar-section { flex: 3; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        /* Dicsőségfal stílusa */
+        .sidebar { 
+            flex: 1; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+            position: sticky; 
+            top: 20px;
+        }
+
+        h1, h2 { color: var(--hfs-red); text-align: center; border-bottom: 2px solid var(--hfs-red); padding-bottom: 10px; }
         
         .controls { margin-bottom: 20px; text-align: center; }
         select { padding: 10px 20px; font-size: 16px; border: 2px solid var(--hfs-red); border-radius: 8px; cursor: pointer; font-weight: bold; }
         
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ddd; border: 1px solid #ddd; }
-        .weekday { background: var(--hfs-red); color: white; padding: 10px; text-align: center; font-weight: bold; font-size: 0.85em; }
-        .day { background: white; min-height: 130px; padding: 8px; position: relative; }
-        .day-number { font-weight: bold; color: #555; margin-bottom: 5px; display: block; }
-        .today { background: #fffde7 !important; border: 2px solid #fbc02d !important; }
+        .weekday { background: var(--hfs-red); color: white; padding: 10px; text-align: center; font-weight: bold; font-size: 0.9em; }
+        .day { background: white; min-height: 140px; padding: 8px; position: relative; }
+        .day-number { font-weight: bold; color: #555; margin-bottom: 8px; display: block; }
+        .today { background: #fff9c4 !important; border: 2px solid #fbc02d !important; }
+
+        .event-card { border-left: 4px solid var(--hfs-red); padding: 5px; margin-bottom: 8px; background: #fffcfc; border-radius: 4px; font-size: 0.8em; }
+        .event-name { font-weight: bold; display: block; margin-bottom: 4px; }
         
-        .event-card { border-left: 4px solid var(--hfs-red); padding: 5px; margin-bottom: 5px; background: #fffcfc; border-radius: 4px; font-size: 0.75em; }
-        .person-tag { padding: 2px 4px; margin-top: 2px; border-radius: 3px; font-size: 0.8em; border-left: 3px solid #ccc; background: #f8f9fa; display: flex; align-items: center; gap: 4px; }
+        .person-tag { padding: 3px 5px; margin-top: 3px; border-radius: 4px; font-size: 0.85em; border-left: 3px solid #ccc; background: #f8f9fa; }
         .status-biztos { border-left-color: var(--status-biztos); }
         .status-talan { border-left-color: var(--status-talan); }
 
-        .leaderboard-item { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f0f0; gap: 8px; }
-        .leader-info { flex-grow: 1; line-height: 1.2; }
-        .leader-name { font-weight: bold; display: block; font-size: 0.85em; }
-        .leader-stats { font-size: 0.75em; color: #666; }
-        .leader-medals { font-size: 1em; white-space: nowrap; }
-        .final-badge { background: var(--hfs-red); color: white; padding: 1px 3px; border-radius: 3px; font-size: 0.7em; font-weight: bold; }
+        /* Dicsőségfal elemek */
+        .leaderboard-item { 
+            display: flex; 
+            align-items: center; 
+            padding: 10px; 
+            border-bottom: 1px solid #eee;
+            gap: 12px;
+        }
+        .leader-info { flex-grow: 1; }
+        .leader-name { font-weight: bold; display: block; }
+        .leader-stats { font-size: 0.85em; color: #666; }
+        .leader-medals { font-size: 1.2em; letter-spacing: 2px; }
+
+        .final-badge { background: var(--hfs-red); color: white; padding: 1px 4px; border-radius: 3px; font-size: 0.7em; margin-left: 4px; vertical-align: middle; }
     </style>
 </head>
 <body>
+
 <div class="main-layout">
     <div class="calendar-section">
         <h1>HFS | European Tour 2026</h1>
         <div class="controls"><select id="monthSelect"></select></div>
         <div id="calendar" class="calendar-grid"></div>
     </div>
+
     <div class="sidebar">
-        <h2>🏆 Ranglisták</h2>
-        <div class="leaderboard-box"><h3>✨ Hónap Táncosa</h3><div id="monthlyLeaderboard">...</div></div>
-        <div class="leaderboard-box"><h3>🚀 2026 Szezon</h3><div id="yearlyLeaderboard">...</div></div>
-        <div class="leaderboard-box"><h3>👑 Örök Ranglista</h3><div id="allTimeLeaderboard">...</div></div>
+        <h2>🏆 Dicsőségfal</h2>
+        <div id="leaderboard">Betöltés...</div>
     </div>
 </div>
 
 <script>
-    const wishlistUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=338581218&single=true&output=csv';
-    const eredmenyekUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=1410406652&single=true&output=csv';
+    const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=338581218&single=true&output=csv';
 
     const resztvevokMap = {
-        "Lázár Luca": { nev: "Lázár Luca", emoji: "🐶", alias: "Luca" },
-        "Angyal Mercédesz": { nev: "Angyal Mercédesz", emoji: "🦆", alias: "Merci" },
-        "Ferenczi Csongor": { nev: "Ferenczi Csongor", emoji: "🌈", alias: "Csongi" },
-        "Bende Márton": { nev: "Bende Márton", emoji: "🦄", alias: "Mózes" },
-        "Dominguez Zoltán": { nev: "Dominguez Zoltán", emoji: "🕺", alias: "Zoli" }
+        "Csongi": { nev: "Ferenczi Csongor", emoji: "🌈" },
+        "Merci": { nev: "Angyal Mercédesz", emoji: "🦆" },
+        "Mózes": { nev: "Bende Márton", emoji: "🦄" },
+        "Luca": { nev: "Lázár Luca", emoji: "🐶" },
+        "Zoli": { nev: "Dominguez Zoltán", emoji: "🕺" }
     };
 
-    let allWishlistEvents = [];
-    let pastResults = [];
+    let allEvents = [];
 
     async function init() {
         try {
-            const [resW, resE] = await Promise.all([fetch(wishlistUrl), fetch(eredmenyekUrl)]);
-            const [csvW, csvE] = await Promise.all([resW.text(), resE.text()]);
-            
-            const rowsW = csvW.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
-            const headersW = rowsW[3];
-            for(let i = 4; i < rowsW.length; i++) {
-                let obj = {}; headersW.forEach((h, idx) => { if(h) obj[h] = rowsW[i][idx]; });
-                if(obj.Event) allWishlistEvents.push(obj);
+            const response = await fetch(url);
+            const csvText = await response.text();
+            const rows = csvText.split('\n').map(row => row.split(',').map(c => c.trim().replace(/"/g, '')));
+            const headers = rows[3];
+            allEvents = [];
+            for(let i = 4; i < rows.length; i++) {
+                let obj = {};
+                rows[i].forEach((val, idx) => { obj[headers[idx]] = val; });
+                if(obj.Event) allEvents.push(obj);
             }
-
-            const rowsE = csvE.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
-            const headersE = rowsE[4];
-            for(let i = 5; i < rowsE.length; i++) {
-                let obj = {}; headersE.forEach((h, idx) => { if(h) obj[h] = rowsE[i][idx]; });
-                if(obj.Event) pastResults.push(obj);
-            }
-
             setupMonthSelect();
+            updateLeaderboard();
             render(new Date().getMonth());
-        } catch (e) { console.error("Hiba az adatok beolvasásakor:", e); }
+        } catch (e) { console.error(e); }
     }
 
-    function parseStatusResult(text) {
-        if (!text) return { place: null, points: 0, isFinal: false };
-        const low = text.toLowerCase();
-        let res = { place: null, points: 0, isFinal: false };
+    function parseResult(text) {
+        if (!text) return null;
+        const lowText = text.toLowerCase();
+        let res = { place: null, isFinal: false, points: 0, level: "" };
         const pm = text.match(/([1-5])\s*\.?\s*hely/i);
         if (pm) res.place = parseInt(pm[1]);
-        else if (low.includes("final")) res.isFinal = true;
+        else if (lowText.includes("final")) res.isFinal = true;
         const ptm = text.match(/\+?\s*(\d+)\s*pont/i);
         if (ptm) res.points = parseInt(ptm[1]);
+        if (lowText.includes("novice")) res.level = "Novice";
+        if (lowText.includes("inter")) res.level = "Inter";
         return res;
     }
 
-    function parseDate(dStr) {
-        if(!dStr) return null;
-        const p = dStr.replace(/\s/g, '').split('.');
-        if(p.length < 3) return new Date(dStr.replace(/\./g, '/'));
-        return new Date(p[0], p[1]-1, p[2]);
-    }
-
-    function calculate(mode, monthIdx = null) {
+    function updateLeaderboard() {
+        const board = document.getElementById('leaderboard');
         let stats = {};
         Object.keys(resztvevokMap).forEach(k => stats[k] = { gold: 0, silver: 0, bronze: 0, points: 0, finals: 0 });
 
-        if (mode === 'all') {
-            pastResults.forEach(r => {
-                if(stats[r.Name]) {
-                    const p = parseInt(r.Final);
-                    if(p === 1) stats[r.Name].gold++; else if(p === 2) stats[r.Name].silver++; else if(p === 3) stats[r.Name].bronze++;
-                    if(p > 0) stats[r.Name].finals++;
-                    stats[r.Name].points += parseInt(r.Point || 0);
+        allEvents.forEach(e => {
+            Object.keys(resztvevokMap).forEach(k => {
+                const r = parseResult(e[k]);
+                if (r) {
+                    if (r.place === 1) stats[k].gold++;
+                    if (r.place === 2) stats[k].silver++;
+                    if (r.place === 3) stats[k].bronze++;
+                    if (r.isFinal || r.place) stats[k].finals++;
+                    stats[k].points += r.points;
                 }
             });
-        }
-
-        allWishlistEvents.forEach(e => {
-            const d = parseDate(e["Start date"]);
-            if (!d) return;
-            if (mode === 'month' && d.getMonth() !== monthIdx) return;
-            
-            Object.entries(resztvevokMap).forEach(([full, info]) => {
-                const r = parseStatusResult(e[info.alias]);
-                if (r.place === 1) stats[full].gold++; else if (r.place === 2) stats[full].silver++; else if (r.place === 3) stats[full].bronze++;
-                if (r.place || r.isFinal) stats[full].finals++;
-                stats[full].points += r.points;
-            });
         });
-        return stats;
-    }
 
-    function renderBoard(stats) {
-        return Object.keys(resztvevokMap)
-            .sort((a,b) => stats[b].points - stats[a].points || stats[b].gold - stats[a].gold)
+        board.innerHTML = Object.keys(resztvevokMap)
+            .sort((a,b) => stats[b].points - stats[a].points) // Pontsorrend
             .map(k => `
                 <div class="leaderboard-item">
-                    <div style="font-size: 1.2em">${resztvevokMap[k].emoji}</div>
+                    <div style="font-size: 1.5em">${resztvevokMap[k].emoji}</div>
                     <div class="leader-info">
-                        <span class="leader-name">${resztvevokMap[k].alias}</span>
+                        <span class="leader-name">${resztvevokMap[k].nev}</span>
                         <span class="leader-stats">${stats[k].points} pont | ${stats[k].finals} döntő</span>
                     </div>
-                    <div class="leader-medals">${'🥇'.repeat(stats[k].gold)}${'🥈'.repeat(stats[k].silver)}${'🥉'.repeat(stats[k].bronze)}</div>
+                    <div class="leader-medals">
+                        ${'🥇'.repeat(stats[k].gold)}${'🥈'.repeat(stats[k].silver)}${'🥉'.repeat(stats[k].bronze)}
+                    </div>
                 </div>
             `).join('');
     }
 
-    function render(monthIdx) {
-        const cal = document.getElementById('calendar'); cal.innerHTML = '';
-        const wdays = ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"];
-        wdays.forEach(d => cal.innerHTML += `<div class="weekday">${d}</div>`);
-        
-        const year = 2026, first = (new Date(year, monthIdx, 1).getDay() + 6) % 7, days = new Date(year, monthIdx + 1, 0).getDate(), today = new Date();
-        for(let i = 0; i < first; i++) cal.innerHTML += `<div class="day empty"></div>`;
-        
-        for(let d = 1; d <= days; d++) {
-            const curr = new Date(year, monthIdx, d); curr.setHours(0,0,0,0);
-            const evs = allWishlistEvents.filter(e => {
-                const s = parseDate(e["Start date"]), end = parseDate(e["End date"]);
-                return s && end && curr >= s && curr <= end;
+    function render(monthIndex) {
+        const cal = document.getElementById('calendar');
+        cal.innerHTML = '';
+        ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"].forEach(d => cal.innerHTML += `<div class="weekday">${d}</div>`);
+        const year = 2026;
+        const firstDay = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
+        const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+        const today = new Date();
+        for(let i=0; i<firstDay; i++) cal.innerHTML += `<div class="day empty"></div>`;
+        for(let d=1; d<=daysInMonth; d++) {
+            const current = new Date(year, monthIndex, d);
+            current.setHours(0,0,0,0);
+            const isToday = current.toDateString() === today.toDateString();
+            const daily = allEvents.filter(e => {
+                const start = new Date(e["Start date"].replace(/\./g, '/'));
+                const end = new Date(e["End date"].replace(/\./g, '/'));
+                return current >= start && current <= end;
             });
-            let h = `<div class="day ${curr.toDateString() === today.toDateString() ? 'today' : ''}"><span class="day-number">${d}</span>`;
-            evs.forEach(e => {
-                let ts = ""; Object.entries(resztvevokMap).forEach(([f, i]) => {
-                    const raw = e[i.alias];
-                    if (raw && (raw.toLowerCase().includes("igen") || raw.toLowerCase().includes("talan"))) {
-                        const r = parseStatusResult(raw);
-                        ts += `<div class="person-tag ${raw.toLowerCase().includes("talan") ? 'status-talan' : 'status-biztos'}">
-                            ${i.emoji} ${i.alias} ${r.place ? '🥇🥈🥉'[r.place-1] || '🏅' : ''} ${r.isFinal ? '<span class="final-badge">F</span>' : ''}
+            let html = `<div class="day ${isToday ? 'today' : ''}"><span class="day-number">${d}</span>`;
+            daily.forEach(e => {
+                let tags = "";
+                Object.keys(resztvevokMap).forEach(k => {
+                    const raw = e[k];
+                    if (raw && (raw.toLowerCase().includes("igen") || raw.toLowerCase().includes("talan") || raw.toLowerCase().includes("igazolt"))) {
+                        const r = parseResult(raw);
+                        const isTalan = raw.toLowerCase().includes("talan");
+                        tags += `<div class="person-tag ${isTalan ? 'status-talan' : 'status-biztos'}">
+                            ${resztvevokMap[k].emoji} ${k}
+                            ${r.place ? `<span style="font-size:1.2em">${r.place==1?'🥇':r.place==2?'🥈':r.place==3?'🥉':'🏅'}</span>` : ''}
+                            ${r.isFinal ? `<span class="final-badge">F</span>` : ''}
                         </div>`;
                     }
                 });
-                h += `<div class="event-card"><strong>${e.Event}</strong>${ts}</div>`;
+                html += `<div class="event-card"><strong>${e.Event}</strong>${tags}</div>`;
             });
-            cal.innerHTML += h + `</div>`;
+            cal.innerHTML += html + `</div>`;
         }
-        document.getElementById('monthlyLeaderboard').innerHTML = renderBoard(calculate('month', monthIdx));
-        document.getElementById('yearlyLeaderboard').innerHTML = renderBoard(calculate('year'));
-        document.getElementById('allTimeLeaderboard').innerHTML = renderBoard(calculate('all'));
     }
 
     function setupMonthSelect() {
         const sel = document.getElementById('monthSelect');
-        const mNames = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
+        const months = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
         sel.innerHTML = '';
-        mNames.forEach((m, i) => {
-            const opt = document.createElement('option'); opt.value = i; opt.textContent = m;
+        months.forEach((m, i) => {
+            const opt = document.createElement('option');
+            opt.value = i; opt.textContent = m;
             if(i === new Date().getMonth()) opt.selected = true;
             sel.appendChild(opt);
         });
