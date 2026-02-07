@@ -17,7 +17,7 @@
         body { font-family: 'Segoe UI', sans-serif; margin: 20px; background: #f4f4f4; }
         .main-layout { max-width: 1600px; margin: 0 auto; }
 
-        /* Visszaszámláló kártya stílusa */
+        /* Visszaszámláló kártya */
         .next-event-card {
             background: white;
             border-radius: 12px;
@@ -34,40 +34,77 @@
         .countdown-timer { text-align: right; font-size: 1.2em; font-weight: bold; color: var(--hfs-red); }
         .countdown-timer span { font-size: 1.5em; display: block; }
 
-        .calendar-section { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .calendar-section { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         
-        /* Tag szűrő stílusa */
+        /* EGYSÉGESÍTETT VEZÉRLŐPANEL */
+        .filter-panel {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            padding: 15px;
+            background: #fafafa;
+            border-radius: 50px;
+            border: 1px solid #eee;
+        }
+
         .member-filter {
             display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 25px;
-            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
         }
-        .filter-btn {
+
+        /* Közös gomb/select design */
+        .filter-btn, #monthSelect {
             background: white;
             border: 2px solid #ddd;
-            padding: 10px 20px;
+            padding: 10px 18px;
             border-radius: 30px;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             font-weight: 600;
+            font-family: inherit;
+            font-size: 0.95em;
             transition: all 0.3s ease;
+            outline: none;
+        }
+
+        #monthSelect {
+            color: #444;
+            padding-right: 35px; /* hely a nyílnak */
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23800000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 14px;
+        }
+
+        .filter-btn {
             filter: grayscale(100%);
             opacity: 0.6;
+            color: #666;
         }
-        .filter-btn.active {
+
+        /* Aktív állapotok */
+        .filter-btn.active, #monthSelect:focus, #monthSelect:hover {
             border-color: var(--hfs-red);
-            background: var(--hfs-light-red);
+            background-color: white;
             filter: grayscale(0%);
             opacity: 1;
-            transform: scale(1.05);
-            box-shadow: 0 4px 10px rgba(128,0,0,0.2);
+            box-shadow: 0 4px 8px rgba(128,0,0,0.1);
         }
-        .filter-btn:hover { opacity: 1; filter: grayscale(0%); border-color: #bbb; }
 
+        .filter-btn.active {
+            background: var(--hfs-light-red);
+            color: var(--hfs-red);
+            transform: scale(1.05);
+        }
+
+        /* Naptár rács */
         .calendar-grid { 
             display: grid; 
             grid-template-columns: repeat(7, 1fr); 
@@ -76,60 +113,39 @@
             border: 1px solid #ddd; 
         }
         
-        .weekday { background: var(--hfs-red); color: white; padding: 10px; text-align: center; font-weight: bold; font-size: 0.9em; }
+        .weekday { background: var(--hfs-red); color: white; padding: 12px; text-align: center; font-weight: bold; font-size: 0.9em; text-transform: uppercase; }
         
         .day { 
             background: white; 
-            min-height: 140px; 
-            height: auto;
-            padding: 8px; 
-            position: relative; 
+            min-height: 150px; 
+            padding: 10px; 
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 6px;
         }
 
-        .empty-day {
-            background-color: var(--empty-gray);
-            background-image: radial-gradient(#dcdcdc 1px, transparent 1px);
-            background-size: 10px 10px;
-            min-height: 140px;
-        }
-        
-        .day-number { font-weight: bold; color: #555; margin-bottom: 5px; display: block; }
+        .empty-day { background-color: var(--empty-gray); background-image: radial-gradient(#dcdcdc 1px, transparent 1px); background-size: 10px 10px; }
+        .day-number { font-weight: bold; color: #555; font-size: 1.1em; }
         .today { background: #fffde7 !important; border: 2px solid #fbc02d !important; }
 
+        /* Event Kártya */
         .event-card { 
             background-color: var(--hfs-light-red);
             padding: 8px; 
-            border-radius: 6px; 
+            border-radius: 8px; 
             font-size: 0.75em; 
             color: var(--hfs-red); 
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 4px;
-            border: 1px solid rgba(128, 0, 0, 0.2);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            border: 1px solid rgba(128, 0, 0, 0.15);
         }
         
-        .event-title { 
-            font-weight: bold; 
-            display: block; 
-            margin-bottom: 6px; 
-            border-bottom: 1px solid rgba(128, 0, 0, 0.1);
-            padding-bottom: 2px;
-            text-transform: uppercase;
-            font-size: 1.1em;
-        }
-        
-        .participants-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-        }
+        .event-title { font-weight: bold; display: block; margin-bottom: 6px; border-bottom: 1px solid rgba(128, 0, 0, 0.1); padding-bottom: 2px; text-transform: uppercase; }
+        .participants-container { display: flex; flex-wrap: wrap; gap: 4px; }
 
         .person-tag { 
-            padding: 3px 7px; 
+            padding: 3px 8px; 
             border-radius: 20px; 
-            font-size: 1em; 
+            font-size: 1.05em; 
             font-weight: 600;
             display: flex; 
             align-items: center; 
@@ -137,20 +153,8 @@
             border: 2px solid #ccc;
         }
         
-        .status-biztos { 
-            background-color: var(--status-biztos-bg);
-            border-color: var(--status-biztos-border);
-            color: var(--status-biztos-border);
-        }
-        
-        .status-talan { 
-            background-color: var(--status-talan-bg);
-            border-color: var(--status-talan-border);
-            color: var(--status-talan-border);
-        }
-
-        #controls { text-align: center; margin-bottom: 20px; }
-        select { padding: 10px; border-radius: 8px; border: 2px solid var(--hfs-red); font-weight: bold; cursor: pointer; background: white; }
+        .status-biztos { background-color: var(--status-biztos-bg); border-color: var(--status-biztos-border); color: var(--status-biztos-border); }
+        .status-talan { background-color: var(--status-talan-bg); border-color: var(--status-talan-border); color: var(--status-talan-border); }
     </style>
 </head>
 <body>
@@ -159,12 +163,11 @@
     <div id="nextEventContainer"></div>
 
     <div class="calendar-section">
-        <h1 style="text-align:center; color:var(--hfs-red); margin-top:0;">HFS | European Tour 2026</h1>
+        <h1 style="text-align:center; color:var(--hfs-red); margin-bottom:25px;">HFS | European Tour 2026</h1>
         
-        <div class="member-filter" id="memberFilter"></div>
-
-        <div id="controls">
+        <div class="filter-panel">
             <select id="monthSelect"></select>
+            <div class="member-filter" id="memberFilter"></div>
         </div>
         
         <div id="calendar" class="calendar-grid"></div>
@@ -205,7 +208,6 @@
             for(let i = 4; i < rows.length; i++) {
                 let obj = {}; 
                 if(headers) headers.forEach((h, idx) => { if(h) obj[h] = rows[i][idx]; });
-                
                 if(obj.Event) {
                     obj._startDate = parseHungarianDate(obj["Start date"]);
                     obj._endDate = parseHungarianDate(obj["End date"]);
@@ -246,7 +248,6 @@
         const now = new Date();
         now.setHours(0,0,0,0);
         
-        // Csak azokat nézzük, amin legalább egy HFS tag ott van
         const upcoming = allWishlistEvents
             .filter(e => {
                 if (!e._endDate || e._endDate < now) return false;
@@ -260,8 +261,7 @@
         const container = document.getElementById('nextEventContainer');
         if (upcoming.length > 0) {
             const next = upcoming[0];
-            const diffTime = next._startDate - now;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            const diffDays = Math.ceil((next._startDate - now) / (1000 * 60 * 60 * 24));
             
             container.innerHTML = `
                 <div class="next-event-card">
@@ -299,13 +299,10 @@
                 const isDuring = currentTime >= e._startDate.getTime() && currentTime <= e._endDate.getTime();
                 if (!isDuring) return false;
 
-                // Ha van aktív szűrő, csak azt az eseményt mutatjuk, amin az adott tag részt vesz
                 if (activeMemberFilter) {
                     const status = (e[activeMemberFilter] || "").toLowerCase();
                     return validStatuses.some(s => status.includes(s));
                 }
-
-                // Ha nincs szűrő, csak azokat mutatjuk, amin legalább egy tag ott van
                 return Object.keys(resztvevokMap).some(alias => {
                     const status = (e[alias] || "").toLowerCase();
                     return validStatuses.some(s => status.includes(s));
@@ -320,7 +317,6 @@
                 Object.entries(resztvevokMap).forEach(([alias, info]) => {
                     const status = (e[alias] || "").toLowerCase();
                     if (validStatuses.some(s => status.includes(s))) {
-                        // Ha van szűrő, csak a szűrt személyt írjuk ki, egyébként mindenkit
                         if (!activeMemberFilter || activeMemberFilter === alias) {
                             const isTalan = status.includes("talán") || status.includes("talan");
                             tags += `<div class="person-tag ${isTalan ? 'status-talan' : 'status-biztos'}">${info.emoji} ${alias}</div>`;
