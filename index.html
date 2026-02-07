@@ -24,9 +24,11 @@
         .day { background: white; min-height: 140px; padding: 8px; position: relative; }
         .day-number { font-weight: bold; color: #555; margin-bottom: 8px; display: block; }
         .today { background: #fffde7 !important; border: 2px solid #fbc02d !important; }
-        .empty { background: #f9f9f9; }
-
+        
+        /* Esemény kártya stílusok */
         .event-card { border-left: 4px solid var(--hfs-red); padding: 5px; margin-bottom: 8px; background: #fffcfc; border-radius: 4px; font-size: 0.75em; }
+        .event-continued { border-left: 4px solid #f0d0d0; background: #fffafa; opacity: 0.6; min-height: 10px; }
+        
         .person-tag { padding: 3px 5px; margin-top: 3px; border-radius: 4px; font-size: 0.85em; border-left: 3px solid #ccc; background: #f8f9fa; display: flex; align-items: center; gap: 4px; }
         .status-biztos { border-left-color: var(--status-biztos); }
         .status-talan { border-left-color: var(--status-talan); }
@@ -65,9 +67,7 @@
         "Dominguez Zoltán": { emoji: "🕺", alias: "Zoli" }
     };
 
-    // Divíziók sorrendje
     const divisionOrder = ["Newcomer", "Novice", "Intermediate", "Advanced", "All-Star", "Champion"];
-
     let allWishlistEvents = [];
     let pastResults = [];
 
@@ -98,7 +98,7 @@
                 if(r.length < 12) continue;
                 pastResults.push({
                     Name: r[1],      // B
-                    Level: r[8],     // I (Division)
+                    Level: r[2],     // C (Division - Frissítve!)
                     Event: r[3],     // D
                     Date: r[4],      // E
                     Final: r[10],    // K
@@ -111,57 +111,36 @@
         } catch (e) { console.error("Hiba:", e); }
     }
 
-    function calculateDivisionStats() {
+    function renderDynamicLeaderboards() {
+        const container = document.getElementById('dynamicLeaderboards');
         let divisionData = {};
 
         pastResults.forEach(r => {
             const div = r.Level || "Ismeretlen";
-            const name = r.Name;
-            if(!resztvevokMap[name]) return;
-
             if(!divisionData[div]) {
                 divisionData[div] = {};
                 Object.keys(resztvevokMap).forEach(k => divisionData[div][k] = { gold: 0, silver: 0, bronze: 0, points: 0 });
             }
-
-            const place = parseInt(r.Final);
-            if(place === 1) divisionData[div][name].gold++;
-            else if(place === 2) divisionData[div][name].silver++;
-            else if(place === 3) divisionData[div][name].bronze++;
-            
-            divisionData[div][name].points += (parseInt(r.Point) || 0);
+            if(resztvevokMap[r.Name]) {
+                const place = parseInt(r.Final);
+                if(place === 1) divisionData[div][r.Name].gold++;
+                else if(place === 2) divisionData[div][r.Name].silver++;
+                else if(place === 3) divisionData[div][r.Name].bronze++;
+                divisionData[div][r.Name].points += (parseInt(r.Point) || 0);
+            }
         });
-        return divisionData;
-    }
 
-    function renderDynamicLeaderboards() {
-        const container = document.getElementById('dynamicLeaderboards');
-        const divStats = calculateDivisionStats();
         container.innerHTML = "";
-
-        // Csak azokat a divíziókat jelenítjük meg, amikben van pont, a megadott sorrendben
         divisionOrder.forEach(divName => {
-            if(divStats[divName]) {
-                const stats = divStats[divName];
+            if(divisionData[divName]) {
+                const stats = divisionData[divName];
                 const sortedNames = Object.keys(resztvevokMap).filter(n => stats[n].points > 0 || stats[n].gold > 0).sort((a,b) => stats[b].points - stats[a].points);
-                
                 if(sortedNames.length > 0) {
                     let box = `<div class="leaderboard-box"><h3>${divName}</h3>`;
                     sortedNames.forEach(name => {
-                        box += `
-                            <div class="leaderboard-item">
-                                <div style="font-size: 1.2em">${resztvevokMap[name].emoji}</div>
-                                <div class="leader-info">
-                                    <span class="leader-name">${resztvevokMap[name].alias}</span>
-                                    <span class="leader-stats">${stats[name].points} pont</span>
-                                </div>
-                                <div class="leader-medals">
-                                    ${'🥇'.repeat(stats[name].gold)}${'🥈'.repeat(stats[name].silver)}${'🥉'.repeat(stats[name].bronze)}
-                                </div>
-                            </div>`;
+                        box += `<div class="leaderboard-item"><div style="font-size: 1.2em">${resztvevokMap[name].emoji}</div><div class="leader-info"><span class="leader-name">${resztvevokMap[name].alias}</span><span class="leader-stats">${stats[name].points} pont</span></div><div class="leader-medals">${'🥇'.repeat(stats[name].gold)}${'🥈'.repeat(stats[name].silver)}${'🥉'.repeat(stats[name].bronze)}</div></div>`;
                     });
-                    box += `</div>`;
-                    container.innerHTML += box;
+                    container.innerHTML += box + `</div>`;
                 }
             }
         });
@@ -169,31 +148,42 @@
 
     function render(monthIndex) {
         const cal = document.getElementById('calendar'); cal.innerHTML = '';
-        const wDays = ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"];
-        wDays.forEach(d => cal.innerHTML += `<div class="weekday">${d}</div>`);
+        ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"].forEach(d => cal.innerHTML += `<div class="weekday">${d}</div>`);
         
         const year = 2026, firstDay = (new Date(year, monthIndex, 1).getDay() + 6) % 7, daysInMonth = new Date(year, monthIndex + 1, 0).getDate(), today = new Date();
         for(let i = 0; i < firstDay; i++) cal.innerHTML += `<div class="day empty"></div>`;
         
         for(let d = 1; d <= daysInMonth; d++) {
             const current = new Date(year, monthIndex, d); current.setHours(0,0,0,0);
+            
             const daily = allWishlistEvents.filter(e => {
                 const s = parseDate(e["Start date"]), end = parseDate(e["End date"]);
                 return s && end && current >= s && current <= end;
             });
+
             let html = `<div class="day ${current.toDateString() === today.toDateString() ? 'today' : ''}"><span class="day-number">${d}</span>`;
+            
             daily.forEach(e => {
-                let tags = "";
-                Object.entries(resztvevokMap).forEach(([fullName, info]) => {
-                    const status = (e[info.alias] || "").toLowerCase();
-                    if (status.includes("igen") || status.includes("talan") || status.includes("igazolt")) {
-                        const res = pastResults.find(r => r.Name === fullName && r.Event.trim().toLowerCase() === e.Event.trim().toLowerCase() && parseDate(r.Date)?.getFullYear() === year);
-                        const p = res ? parseInt(res.Final) : null;
-                        let icon = (p === 1) ? "🥇" : (p === 2) ? "🥈" : (p === 3) ? "🥉" : "";
-                        tags += `<div class="person-tag ${status.includes("talan") ? 'status-talan' : 'status-biztos'}">${info.emoji} ${info.alias} ${icon}</div>`;
-                    }
-                });
-                html += `<div class="event-card"><strong>${e.Event}</strong>${tags}</div>`;
+                const startDate = parseDate(e["Start date"]);
+                // CSAK az esemény első napján írjuk ki a teljes nevet és tag-eket
+                const isFirstDay = current.getTime() === startDate.getTime();
+
+                if (isFirstDay) {
+                    let tags = "";
+                    Object.entries(resztvevokMap).forEach(([fullName, info]) => {
+                        const status = (e[info.alias] || "").toLowerCase();
+                        if (status.includes("igen") || status.includes("talan") || status.includes("igazolt")) {
+                            const res = pastResults.find(r => r.Name === fullName && r.Event.trim().toLowerCase() === e.Event.trim().toLowerCase() && parseDate(r.Date)?.getFullYear() === year);
+                            const p = res ? parseInt(res.Final) : null;
+                            let icon = (p === 1) ? "🥇" : (p === 2) ? "🥈" : (p === 3) ? "🥉" : "";
+                            tags += `<div class="person-tag ${status.includes("talan") ? 'status-talan' : 'status-biztos'}">${info.emoji} ${info.alias} ${icon}</div>`;
+                        }
+                    });
+                    html += `<div class="event-card"><strong>${e.Event}</strong>${tags}</div>`;
+                } else {
+                    // A többi napon csak egy jelzés, hogy tart az esemény
+                    html += `<div class="event-card event-continued" title="${e.Event} folytatódik"></div>`;
+                }
             });
             cal.innerHTML += html + `</div>`;
         }
