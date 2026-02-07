@@ -67,7 +67,8 @@
         if (!name) return null;
         const normalized = name.trim().toLowerCase();
         for (const [alias, data] of Object.entries(resztvevokMap)) {
-            if (alias.toLowerCase() === normalized || data.fullName.toLowerCase() === normalized) {
+            if (normalized.includes(alias.toLowerCase()) || 
+                normalized.includes(data.fullName.toLowerCase())) {
                 return alias;
             }
         }
@@ -86,44 +87,57 @@
             const [resW, resE] = await Promise.all([fetch(wishlistUrl), fetch(eredmenyekUrl)]);
             const csvW = await resW.text(), csvE = await resE.text();
             
+            // Wishlist feldolgozás
             const rowsW = csvW.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
-            const headersW = rowsW[3];
+            const headersW = rowsW[3]; // 4. sor (index 3)
+            allWishlistEvents = [];
             for(let i = 4; i < rowsW.length; i++) {
-                let obj = {}; headersW.forEach((h, idx) => { if(h) obj[h] = rowsW[i][idx]; });
+                let obj = {}; 
+                if(headersW) headersW.forEach((h, idx) => { if(h) obj[h] = rowsW[i][idx]; });
                 if(obj.Event) allWishlistEvents.push(obj);
             }
 
+            // Eredmények feldolgozása
             const rowsE = csvE.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
-            const headersE = rowsE[3]; 
-
+            const headersE = rowsE[3]; // 4. sor a fejléc
+            
             const findIdx = (names) => headersE.findIndex(h => names.some(n => h.toLowerCase().includes(n.toLowerCase())));
             
-            const idxName = findIdx(['Name', 'Név']);
-            const idxDiv = findIdx(['Division', 'Level', 'Cím']);
-            const idxEvent = findIdx(['Event', 'Esemény']);
-            const idxDate = findIdx(['Date', 'Dátum']);
-            const idxFinal = findIdx(['Final', 'Helyezés']);
-            const idxPoint = findIdx(['Point', 'Pont']);
+            const idxName = findIdx(['name', 'név']);
+            const idxDiv = findIdx(['division', 'szint', 'cím']);
+            const idxEvent = findIdx(['event', 'esemény']);
+            const idxDate = findIdx(['date', 'dátum']);
+            const idxFinal = findIdx(['final', 'helyezés']);
+            const idxSum = findIdx(['sum', 'point', 'pont']); // A Sum oszlopot részesítjük előnyben
 
+            pastResults = [];
             for(let i = 4; i < rowsE.length; i++) {
                 const r = rowsE[i];
-                if(!r[idxName] || r[idxName] === "Name") continue;
+                if(!r[idxName] || r[idxName].toLowerCase() === 'name' || r[idxName] === "") continue;
+
                 const alias = getAliasByName(r[idxName]);
                 if (!alias) continue;
 
+                // Pontszám kezelése: tizedesvessző csere pontra a float parsoláshoz
+                let rawPoint = r[idxSum] || "0";
+                let pointVal = parseFloat(rawPoint.replace(',', '.')) || 0;
+
                 pastResults.push({
                     Alias: alias,
-                    Level: r[idxDiv] ? r[idxDiv].trim() : "Ismeretlen",
+                    Level: r[idxDiv] ? r[idxDiv].trim() : "Novice",
                     Event: r[idxEvent] ? r[idxEvent].trim() : "",
                     Date: r[idxDate] ? r[idxDate].trim() : "",
-                    Final: r[idxFinal] ? r[idxFinal].trim() : "",
-                    Point: r[idxPoint] ? r[idxPoint].trim().replace(/[^0-9]/g, '') : "0"
+                    Final: parseInt(r[idxFinal]) || 0,
+                    Point: pointVal
                 });
             }
 
             setupMonthSelect();
             render(new Date().getMonth());
-        } catch (e) { console.error("Hiba:", e); }
+        } catch (e) { 
+            console.error("Hiba:", e); 
+            document.getElementById('dynamicLeaderboards').innerHTML = "Hiba az adatok betöltésekor.";
+        }
     }
 
     function renderLeaderboards() {
@@ -140,11 +154,11 @@
                 });
             }
             const alias = r.Alias;
-            const place = parseInt(r.Final);
+            const place = r.Final;
             if(place === 1) divData[div][alias].gold++;
             else if(place === 2) divData[div][alias].silver++;
             else if(place === 3) divData[div][alias].bronze++;
-            divData[div][alias].points += parseInt(r.Point) || 0;
+            divData[div][alias].points += r.Point;
         });
 
         container.innerHTML = "";
@@ -162,7 +176,7 @@
                                     <div style="font-size: 1.2em">${resztvevokMap[a].emoji}</div>
                                     <div class="leader-info">
                                         <span class="leader-name">${a}</span>
-                                        <span class="leader-stats">${stats[a].points} pont</span>
+                                        <span class="leader-stats">${stats[a].points.toLocaleString('hu-HU')} pont</span>
                                     </div>
                                     <div class="leader-medals">${'🥇'.repeat(stats[a].gold)}${'🥈'.repeat(stats[a].silver)}${'🥉'.repeat(stats[a].bronze)}</div>
                                 </div>`;
@@ -179,8 +193,10 @@
         cal.innerHTML = '';
         const year = 2026;
         ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"].forEach(d => cal.innerHTML += `<div class="weekday">${d}</div>`);
+        
         const firstDay = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
         const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+        
         for(let i = 0; i < firstDay; i++) cal.innerHTML += `<div class="day empty"></div>`;
         
         for(let d = 1; d <= daysInMonth; d++) {
@@ -189,7 +205,10 @@
                 const s = parseHungarianDate(e["Start date"]), end = parseHungarianDate(e["End date"]);
                 return s && end && current >= s && current <= end;
             });
-            let html = `<div class="day ${current.toDateString() === new Date().toDateString() ? 'today' : ''}"><span class="day-number">${d}</span>`;
+
+            let isToday = current.toDateString() === new Date().toDateString();
+            let html = `<div class="day ${isToday ? 'today' : ''}"><span class="day-number">${d}</span>`;
+            
             daily.forEach(e => {
                 const startD = parseHungarianDate(e["Start date"]);
                 const isFirstDay = startD && current.getTime() === startD.getTime();
@@ -198,8 +217,8 @@
                     Object.entries(resztvevokMap).forEach(([alias, info]) => {
                         const status = (e[alias] || "").toLowerCase();
                         if (status.includes("igen") || status.includes("talan") || status.includes("igazolt")) {
-                            const res = pastResults.find(r => r.Alias === alias && r.Event.trim().toLowerCase() === e.Event.trim().toLowerCase() && parseHungarianDate(r.Date)?.getFullYear() === year);
-                            const p = res ? parseInt(res.Final) : null;
+                            const res = pastResults.find(r => r.Alias === alias && r.Event.trim().toLowerCase() === e.Event.trim().toLowerCase());
+                            const p = res ? res.Final : null;
                             let icon = (p === 1) ? "🥇" : (p === 2) ? "🥈" : (p === 3) ? "🥉" : "";
                             tags += `<div class="person-tag ${status.includes("talan") ? 'status-talan' : 'status-biztos'}">${info.emoji} ${alias} ${icon}</div>`;
                         }
@@ -226,6 +245,7 @@
         });
         sel.onchange = (e) => render(parseInt(e.target.value));
     }
+    
     init();
 </script>
 </body>
