@@ -12,13 +12,13 @@
         select { padding: 10px; font-size: 16px; border: 1px solid var(--hfs-red); border-radius: 4px; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); background-color: var(--border-color); border: 1px solid var(--border-color); gap: 1px; }
         .weekday-header { background: var(--hfs-red); color: white; font-weight: bold; text-align: center; padding: 12px; }
-        .day { background: white; min-height: 150px; padding: 8px; position: relative; }
+        .day { background: white; min-height: 150px; padding: 8px; position: relative; overflow-y: auto; }
         .day-number { font-weight: bold; color: #333; margin-bottom: 8px; display: block; }
         .empty { background: #f3f3f3; }
         .event-slot { background-color: #fffefb; border-left: 4px solid var(--hfs-red); padding: 6px; margin-bottom: 8px; border-radius: 3px; font-size: 0.82rem; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         .event-title { font-weight: bold; color: var(--hfs-red); display: block; }
         .attendees { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; border-top: 1px solid #eee; padding-top: 4px; }
-        .person-tag { padding: 1px 5px; border-radius: 8px; font-size: 0.7rem; cursor: help; border: 1px solid transparent; }
+        .person-tag { padding: 1px 5px; border-radius: 8px; font-size: 0.7rem; border: 1px solid transparent; font-weight: 500; }
         .status-igen { background-color: #e8f5e9; color: #2e7d32; border-color: #4CAF50; }
         .status-talan { background-color: #fff3e0; color: #ef6c00; border-color: #FF9800; }
         .status-fizetve { background-color: #e3f2fd; color: #1565c0; border-color: #2196F3; }
@@ -29,7 +29,7 @@
 
     <h1>HFS | European Tour 2026</h1>
     <div class="controls">
-        <label><strong>Hónap:</strong> </label>
+        <label><strong>Naptár nézet:</strong> </label>
         <select id="monthSelect"></select>
     </div>
     <div class="calendar-grid" id="calendar"></div>
@@ -38,6 +38,7 @@
         const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=338581218&single=true&output=csv';
         let naptarAdatok = [];
 
+        // Magyar dátumformátum (2026.01.09.) feldolgozása
         function parseHungarianDate(dStr) {
             if (!dStr) return null;
             const parts = dStr.replace(/\s/g, '').split('.');
@@ -51,8 +52,10 @@
                 const text = await response.text();
                 const lines = text.split('\n');
                 
-                // Megkeressük a fejlécet (az "Event" szót tartalmazó sort)
+                // Megkeressük a tényleges fejlécsort (ahol az "Event" szó szerepel)
                 let headerIndex = lines.findIndex(line => line.includes('Event'));
+                if (headerIndex === -1) return;
+
                 const headers = lines[headerIndex].split(',').map(h => h.trim().replace(/"/g, ''));
                 
                 const rows = [];
@@ -64,14 +67,14 @@
                     rows.push(obj);
                 }
                 naptarAdatok = rows;
-                renderCalendar(new Date().getMonth()); // Aktuális hónappal indít
-            } catch (e) { console.error("Hiba:", e); }
+                renderCalendar(new Date().getMonth());
+            } catch (e) { console.error("Hiba az adatok beolvasásakor:", e); }
         }
 
         function renderCalendar(monthIndex) {
             const calendar = document.getElementById('calendar');
             calendar.innerHTML = '';
-            ["Hét", "Ked", "Sze", "Csü", "Pén", "Szo", "Vas"].forEach(d => {
+            ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"].forEach(d => {
                 calendar.innerHTML += `<div class="weekday-header">${d}</div>`;
             });
 
