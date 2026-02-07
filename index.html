@@ -7,51 +7,70 @@
     <style>
         :root { --hfs-red: #800000; --status-biztos: #4CAF50; --status-talan: #FF9800; }
         body { font-family: 'Segoe UI', sans-serif; margin: 20px; background: #f4f4f4; }
-        .main-layout { display: flex; gap: 20px; max-width: 1750px; margin: 0 auto; }
+        .main-layout { display: flex; gap: 20px; max-width: 1800px; margin: 0 auto; align-items: flex-start; }
         
-        .calendar-section { flex: 3; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .calendar-section { flex: 3; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); overflow: hidden; }
         .sidebar { flex: 1; background: #eee; padding: 15px; border-radius: 12px; position: sticky; top: 20px; max-height: 90vh; overflow-y: auto; }
 
-        .calendar-container { position: relative; background: #ddd; border: 1px solid #ddd; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; }
+        /* Naptár alap rács */
+        .calendar-grid { 
+            display: grid; 
+            grid-template-columns: repeat(7, 1fr); 
+            background: #ddd; 
+            border: 1px solid #ddd;
+            gap: 1px;
+            position: relative;
+        }
+
+        .weekday { background: var(--hfs-red); color: white; padding: 10px; text-align: center; font-weight: bold; font-size: 0.9em; }
         
-        .weekday { background: var(--hfs-red); color: white; padding: 10px; text-align: center; font-weight: bold; font-size: 0.8em; }
-        
-        /* Fix nap cellák */
-        .day { background: white; min-height: 140px; padding: 10px; position: relative; }
-        .day-number { font-weight: bold; color: #333; font-size: 1.1em; z-index: 10; position: relative; }
+        /* Nap cellák (csak a háttér és dátum) */
+        .day { background: white; min-height: 150px; padding: 10px; position: relative; }
+        .day-number { font-weight: bold; color: #333; position: absolute; top: 10px; left: 10px; z-index: 1; }
         .today { background: #fffde7 !important; }
         .empty { background: #fafafa; }
 
-        /* Merge-elt esemény csík */
-        .event-bar {
+        /* Esemény réteg (a napok felett) */
+        .events-overlay {
             position: absolute;
-            left: 5px;
-            right: 5px;
-            top: 40px; /* A dátum alatt kezdődik */
-            background: #fff;
-            border-top: 4px solid var(--hfs-red);
-            border-radius: 4px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-            padding: 8px;
-            z-index: 20;
-            pointer-events: auto;
-            /* A kód számolja ki a szélességet */
-            width: calc((100% * var(--span)) + (1px * (var(--span) - 1)) - 10px);
+            top: 40px; /* A dátumok alatt kezdődik */
+            left: 0;
+            right: 0;
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-auto-rows: min-content;
+            gap: 4px 1px;
+            pointer-events: none; /* Átlátszó az egérnek, hogy a napok kattinthatóak maradjanak */
         }
 
-        .event-title { font-weight: bold; color: var(--hfs-red); display: block; margin-bottom: 5px; text-align: center; }
-        .tag-container { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+        .event-bar {
+            grid-column: var(--start) / span var(--span);
+            background: white;
+            border-top: 4px solid var(--hfs-red);
+            border-radius: 4px;
+            margin: 0 5px;
+            padding: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            pointer-events: auto; /* Ez viszont kattintható */
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .event-title { font-weight: bold; color: var(--hfs-red); font-size: 0.85em; text-align: center; margin-bottom: 5px; }
+        .tag-container { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; }
         
         .person-tag { 
-            font-size: 0.75em; padding: 2px 6px; border-radius: 10px; background: #f0f0f0; 
+            font-size: 0.7em; padding: 2px 5px; border-radius: 10px; background: #f0f0f0; 
             border-left: 3px solid #ccc; display: flex; align-items: center; gap: 3px;
         }
         .status-biztos { border-left-color: var(--status-biztos); }
         .status-talan { border-left-color: var(--status-talan); }
 
-        .leaderboard-box { background: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; }
-        h3 { background: var(--hfs-red); color: white; padding: 5px; text-align: center; border-radius: 4px; font-size: 0.9em; margin-top: 0; }
+        .leaderboard-box { background: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        h3 { background: var(--hfs-red); color: white; padding: 6px; text-align: center; border-radius: 4px; font-size: 0.85em; margin-top: 0; text-transform: uppercase; }
+        .leaderboard-item { display: flex; align-items: center; padding: 5px 0; border-bottom: 1px solid #eee; font-size: 0.9em; }
     </style>
 </head>
 <body>
@@ -60,20 +79,23 @@
     <div class="calendar-section">
         <h1 style="text-align:center; color:var(--hfs-red);">HFS | European Tour 2026</h1>
         <div style="text-align:center; margin-bottom:15px;">
-            <select id="monthSelect" style="padding:8px; border-radius:5px;"></select>
+            <select id="monthSelect" style="padding:10px; border-radius:8px; border:2px solid var(--hfs-red);"></select>
         </div>
         
-        <div class="calendar-container">
-            <div class="calendar-grid" id="weekday-header"></div>
-            <div class="calendar-grid" id="calendar-body"></div>
+        <div class="calendar-grid" id="weekday-header"></div>
+        <div class="calendar-grid" id="calendar-wrapper">
+            <div id="days-container" style="display: contents;"></div>
+            <div id="events-overlay" class="events-overlay"></div>
         </div>
     </div>
     
-    <div class="sidebar" id="sidebar">
+    <div class="sidebar">
         <h2 style="text-align:center;">🏆 Ranglisták</h2>
         <div id="dynamicLeaderboards"></div>
     </div>
 </div>
+
+
 
 <script>
     const wishlistUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=338581218&single=true&output=csv';
@@ -100,9 +122,8 @@
         const csvW = await resW.text(), csvE = await resE.text();
         
         const rowsW = csvW.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
-        const headersW = rowsW[3];
         for(let i = 4; i < rowsW.length; i++) {
-            let obj = {}; headersW.forEach((h, idx) => { if(h) obj[h] = rowsW[i][idx]; });
+            let obj = {}; rowsW[3].forEach((h, idx) => { if(h) obj[h] = rowsW[i][idx]; });
             if(obj.Event) allWishlistEvents.push(obj);
         }
 
@@ -116,60 +137,60 @@
     }
 
     function render(monthIndex) {
-        const body = document.getElementById('calendar-body');
+        const daysContainer = document.getElementById('days-container');
+        const eventsOverlay = document.getElementById('events-overlay');
         const header = document.getElementById('weekday-header');
-        body.innerHTML = ''; header.innerHTML = '';
+        daysContainer.innerHTML = ''; eventsOverlay.innerHTML = ''; header.innerHTML = '';
+        
         const year = 2026;
-
-        ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"].forEach(d => {
-            header.innerHTML += `<div class="weekday">${d}</div>`;
-        });
+        ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"].forEach(d => header.innerHTML += `<div class="weekday">${d}</div>`);
 
         const firstDay = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
         const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
 
-        for(let i = 0; i < firstDay; i++) body.innerHTML += `<div class="day empty"></div>`;
-
+        // 1. Napok kirajzolása
+        for(let i = 0; i < firstDay; i++) daysContainer.innerHTML += `<div class="day empty"></div>`;
         for(let d = 1; d <= daysInMonth; d++) {
-            const curr = new Date(year, monthIndex, d);
-            const isToday = curr.toDateString() === new Date().toDateString();
-            body.innerHTML += `<div class="day ${isToday ? 'today' : ''}" id="day-cell-${d}">
-                <span class="day-number">${d}</span>
-            </div>`;
+            const isToday = new Date(year, monthIndex, d).toDateString() === new Date().toDateString();
+            daysContainer.innerHTML += `<div class="day ${isToday ? 'today' : ''}"><span class="day-number">${d}</span></div>`;
         }
 
-        // Események ráhelyezése
+        // 2. Események kirajzolása (Merge logic)
         allWishlistEvents.forEach(e => {
-            const start = parseDate(e["Start date"]);
-            const end = parseDate(e["End date"]);
+            const start = parseDate(e["Start date"]), end = parseDate(e["End date"]);
             if (start && start.getMonth() === monthIndex && start.getFullYear() === year) {
                 const dayStart = start.getDate();
-                const duration = Math.min(Math.round((end - start) / (86400000)) + 1, 7 - ((start.getDay() + 6) % 7)); // Ne lógjon ki a hét végén (egyszerűsítés)
+                const colStart = ((start.getDay() + 6) % 7) + 1;
+                const duration = Math.round((end - start) / 86400000) + 1;
+                
+                // Mennyi a sor eltolódása a naptár elejétől
+                const totalDaysOffset = firstDay + dayStart - 1;
+                const rowNumber = Math.floor(totalDaysOffset / 7) + 1;
+                const colPos = (totalDaysOffset % 7) + 1;
 
-                const targetCell = document.getElementById(`day-cell-${dayStart}`);
-                if (targetCell) {
-                    let tags = "";
-                    Object.entries(resztvevokMap).forEach(([fullName, info]) => {
-                        const status = (e[info.alias] || "").toLowerCase();
-                        if (status.includes("igen") || status.includes("talan") || status.includes("igazolt")) {
-                            const res = pastResults.find(r => r.Name === fullName && r.Event.toLowerCase().includes(e.Event.toLowerCase()));
-                            const icon = res && res.Final <= 3 ? ['🥇','🥈','🥉'][res.Final-1] : "";
-                            tags += `<div class="person-tag ${status.includes("talan") ? 'status-talan' : 'status-biztos'}">${info.emoji} ${info.alias} ${icon}</div>`;
-                        }
-                    });
+                let tags = "";
+                Object.entries(resztvevokMap).forEach(([fullName, info]) => {
+                    const status = (e[info.alias] || "").toLowerCase();
+                    if (status.includes("igen") || status.includes("talan") || status.includes("igazolt")) {
+                        const res = pastResults.find(r => r.Name === fullName && r.Event.toLowerCase().includes(e.Event.toLowerCase()) && parseDate(r.Date).getFullYear() === 2026);
+                        const icon = res && res.Final <= 3 ? ['🥇','🥈','🥉'][res.Final-1] : "";
+                        tags += `<div class="person-tag ${status.includes("talan") ? 'status-talan' : 'status-biztos'}">${info.emoji} ${info.alias} ${icon}</div>`;
+                    }
+                });
 
-                    const bar = document.createElement('div');
-                    bar.className = 'event-bar';
-                    bar.style.setProperty('--span', duration);
-                    bar.innerHTML = `<span class="event-title">${e.Event}</span><div class="tag-container">${tags}</div>`;
-                    targetCell.appendChild(bar);
-                }
+                const bar = document.createElement('div');
+                bar.className = 'event-bar';
+                // CSS Grid pozicionálás
+                bar.style.gridColumn = `${colPos} / span ${Math.min(duration, 8 - colPos)}`;
+                bar.style.gridRow = `${rowNumber}`;
+                
+                bar.innerHTML = `<span class="event-title">${e.Event}</span><div class="tag-container">${tags}</div>`;
+                eventsOverlay.appendChild(bar);
             }
         });
         renderLeaderboards();
     }
 
-    // Ranglista függvények (maradnak a korábbiak)
     function renderLeaderboards() {
         const container = document.getElementById('dynamicLeaderboards');
         container.innerHTML = '';
@@ -186,7 +207,8 @@
             if(divData[lvl]) {
                 let h = `<div class="leaderboard-box"><h3>${lvl}</h3>`;
                 Object.keys(divData[lvl]).sort((a,b)=>divData[lvl][b].points - divData[lvl][a].points).forEach(n => {
-                    h += `<div class="leaderboard-item"><div class="leader-info"><b>${resztvevokMap[n].alias}</b>: ${divData[lvl][n].points} p</div></div>`;
+                    if(divData[lvl][n].points > 0)
+                        h += `<div class="leaderboard-item"><b>${resztvevokMap[n].alias}</b>: ${divData[lvl][n].points} p</div>`;
                 });
                 container.innerHTML += h + `</div>`;
             }
