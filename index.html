@@ -162,7 +162,17 @@
                 Object.entries(resztvevokMap).forEach(([fullName, info]) => {
                     const status = (e[info.alias] || "").toLowerCase();
                     if (status.includes("igen") || status.includes("talan") || status.includes("igazolt")) {
-                        const res = pastResults.find(r => r.Name === fullName && r.Event.toLowerCase().includes(e.Event.toLowerCase()));
+                        const res = pastResults.find(r => {
+    const nameMatch = r.Name === fullName;
+    const eventMatch = r.Event.toLowerCase().includes(e.Event.toLowerCase());
+    
+    // Megnézzük, hogy a szombati dátum éve ugyanaz-e, mint a naptár éve
+    const rDate = parseDate(r.Date);
+    const wishlistYear = 2026; // Vagy amit a naptár éppen mutat
+    const yearMatch = rDate && rDate.getFullYear() === wishlistYear;
+
+    return nameMatch && eventMatch && yearMatch;
+});
                         const p = res ? parseInt(res.Final) : null;
                         tags += `<div class="person-tag ${status.includes("talan") ? 'status-talan' : 'status-biztos'}">
                             ${info.emoji} ${info.alias} ${p && p <= 3 ? '🥇🥈🥉'[p-1] : p ? '🏅' : ''}
