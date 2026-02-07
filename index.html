@@ -11,8 +11,8 @@
         
         .calendar-section { flex: 2.8; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .sidebar { flex: 1.2; background: #eee; padding: 15px; border-radius: 12px; position: sticky; top: 20px; max-height: 95vh; overflow-y: auto; }
-        .leaderboard-box { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         
+        .leaderboard-box { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         h1, h2 { color: var(--hfs-red); text-align: center; border-bottom: 2px solid var(--hfs-red); padding-bottom: 10px; margin-top: 0; }
         h3 { font-size: 0.9em; color: white; background: var(--hfs-red); padding: 8px; border-radius: 5px; margin-top: 0; text-align: center; text-transform: uppercase; letter-spacing: 1px; }
         
@@ -26,7 +26,7 @@
         .today { background: #fffde7 !important; border: 2px solid #fbc02d !important; }
         .empty { background: #f9f9f9; }
 
-        .event-card { border-left: 4px solid var(--hfs-red); padding: 5px; margin-bottom: 8px; background: #fffcfc; border-radius: 4px; font-size: 0.75em; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .event-card { border-left: 4px solid var(--hfs-red); padding: 5px; margin-bottom: 8px; background: #fffcfc; border-radius: 4px; font-size: 0.75em; }
         .person-tag { padding: 3px 5px; margin-top: 3px; border-radius: 4px; font-size: 0.85em; border-left: 3px solid #ccc; background: #f8f9fa; display: flex; align-items: center; gap: 4px; }
         .status-biztos { border-left-color: var(--status-biztos); }
         .status-talan { border-left-color: var(--status-talan); }
@@ -48,15 +48,12 @@
     </div>
 
     <div class="sidebar">
-        <h2>🏆 Ranglisták</h2>
-        <div class="leaderboard-box"><h3>✨ Hónap Táncosa</h3><div id="monthlyLeaderboard">...</div></div>
-        <div class="leaderboard-box"><h3>🚀 2026 Szezon</h3><div id="yearlyLeaderboard">...</div></div>
-        <div class="leaderboard-box"><h3>👑 Örök Ranglista</h3><div id="allTimeLeaderboard">...</div></div>
+        <h2>🏆 Divízió Ranglisták</h2>
+        <div id="dynamicLeaderboards">Betöltés...</div>
     </div>
 </div>
 
 <script>
-    // A megadott publikus CSV linkek
     const wishlistUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=338581218&single=true&output=csv';
     const eredmenyekUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=1410406652&single=true&output=csv';
 
@@ -67,6 +64,9 @@
         "Lázár Luca": { emoji: "🐶", alias: "Luca" },
         "Dominguez Zoltán": { emoji: "🕺", alias: "Zoli" }
     };
+
+    // Divíziók sorrendje
+    const divisionOrder = ["Newcomer", "Novice", "Intermediate", "Advanced", "All-Star", "Champion"];
 
     let allWishlistEvents = [];
     let pastResults = [];
@@ -84,7 +84,6 @@
             const csvW = await resW.text();
             const csvE = await resE.text();
             
-            // Wishlist feldolgozása (Naptár)
             const rowsW = csvW.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
             const headersW = rowsW[3];
             for(let i = 4; i < rowsW.length; i++) {
@@ -93,65 +92,79 @@
                 if(obj.Event) allWishlistEvents.push(obj);
             }
 
-            // Eredmények feldolgozása (B oszloptól)
             const rowsE = csvE.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
             for(let i = 5; i < rowsE.length; i++) {
                 const r = rowsE[i];
                 if(r.length < 12) continue;
                 pastResults.push({
-                    Name: r[1],   // B oszlop
-                    Event: r[3],  // D oszlop
-                    Date: r[4],   // E oszlop
-                    Final: r[10], // K oszlop
-                    Point: r[11]  // L oszlop
+                    Name: r[1],      // B
+                    Level: r[8],     // I (Division)
+                    Event: r[3],     // D
+                    Date: r[4],      // E
+                    Final: r[10],    // K
+                    Point: r[11]     // L
                 });
             }
 
             setupMonthSelect();
             render(new Date().getMonth());
-        } catch (e) { 
-            console.error("Adat betöltési hiba:", e);
-            document.body.innerHTML += `<div style="color:red; text-align:center; padding:20px;">Hiba történt az adatok betöltésekor. Ellenőrizd a táblázat publikálását!</div>`;
-        }
+        } catch (e) { console.error("Hiba:", e); }
     }
 
-    function calculateStats(mode, monthIdx = null) {
-        let stats = {};
-        Object.keys(resztvevokMap).forEach(k => stats[k] = { gold: 0, silver: 0, bronze: 0, points: 0, finals: 0 });
+    function calculateDivisionStats() {
+        let divisionData = {};
 
         pastResults.forEach(r => {
+            const div = r.Level || "Ismeretlen";
             const name = r.Name;
-            if(!stats[name]) return;
+            if(!resztvevokMap[name]) return;
 
-            const d = parseDate(r.Date);
-            const is2026 = d && d.getFullYear() === 2026;
-
-            if (mode === 'month' && (!d || d.getMonth() !== monthIdx || !is2026)) return;
-            if (mode === 'year' && !is2026) return;
+            if(!divisionData[div]) {
+                divisionData[div] = {};
+                Object.keys(resztvevokMap).forEach(k => divisionData[div][k] = { gold: 0, silver: 0, bronze: 0, points: 0 });
+            }
 
             const place = parseInt(r.Final);
-            if(place === 1) stats[name].gold++;
-            else if(place === 2) stats[name].silver++;
-            else if(place === 3) stats[name].bronze++;
-            if(place > 0 && place <= 5) stats[name].finals++;
-            stats[name].points += parseInt(r.Point || 0);
+            if(place === 1) divisionData[div][name].gold++;
+            else if(place === 2) divisionData[div][name].silver++;
+            else if(place === 3) divisionData[div][name].bronze++;
+            
+            divisionData[div][name].points += (parseInt(r.Point) || 0);
         });
-        return stats;
+        return divisionData;
     }
 
-    function renderBoard(elementId, stats) {
-        const board = document.getElementById(elementId);
-        const sorted = Object.keys(resztvevokMap).sort((a,b) => stats[b].points - stats[a].points || stats[b].gold - stats[a].gold);
-        board.innerHTML = sorted.map(k => `
-            <div class="leaderboard-item">
-                <div style="font-size: 1.2em">${resztvevokMap[k].emoji}</div>
-                <div class="leader-info">
-                    <span class="leader-name">${resztvevokMap[k].alias}</span>
-                    <span class="leader-stats">${stats[k].points} pont</span>
-                </div>
-                <div class="leader-medals">${'🥇'.repeat(stats[k].gold)}${'🥈'.repeat(stats[k].silver)}${'🥉'.repeat(stats[k].bronze)}</div>
-            </div>
-        `).join('');
+    function renderDynamicLeaderboards() {
+        const container = document.getElementById('dynamicLeaderboards');
+        const divStats = calculateDivisionStats();
+        container.innerHTML = "";
+
+        // Csak azokat a divíziókat jelenítjük meg, amikben van pont, a megadott sorrendben
+        divisionOrder.forEach(divName => {
+            if(divStats[divName]) {
+                const stats = divStats[divName];
+                const sortedNames = Object.keys(resztvevokMap).filter(n => stats[n].points > 0 || stats[n].gold > 0).sort((a,b) => stats[b].points - stats[a].points);
+                
+                if(sortedNames.length > 0) {
+                    let box = `<div class="leaderboard-box"><h3>${divName}</h3>`;
+                    sortedNames.forEach(name => {
+                        box += `
+                            <div class="leaderboard-item">
+                                <div style="font-size: 1.2em">${resztvevokMap[name].emoji}</div>
+                                <div class="leader-info">
+                                    <span class="leader-name">${resztvevokMap[name].alias}</span>
+                                    <span class="leader-stats">${stats[name].points} pont</span>
+                                </div>
+                                <div class="leader-medals">
+                                    ${'🥇'.repeat(stats[name].gold)}${'🥈'.repeat(stats[name].silver)}${'🥉'.repeat(stats[name].bronze)}
+                                </div>
+                            </div>`;
+                    });
+                    box += `</div>`;
+                    container.innerHTML += box;
+                }
+            }
+        });
     }
 
     function render(monthIndex) {
@@ -174,30 +187,23 @@
                 Object.entries(resztvevokMap).forEach(([fullName, info]) => {
                     const status = (e[info.alias] || "").toLowerCase();
                     if (status.includes("igen") || status.includes("talan") || status.includes("igazolt")) {
-                        // Párosítás név ÉS eseménynév alapján (évet is figyelembe véve)
-                        const res = pastResults.find(r => 
-                            r.Name === fullName && 
-                            r.Event.trim().toLowerCase() === e.Event.trim().toLowerCase() &&
-                            parseDate(r.Date)?.getFullYear() === year
-                        );
+                        const res = pastResults.find(r => r.Name === fullName && r.Event.trim().toLowerCase() === e.Event.trim().toLowerCase() && parseDate(r.Date)?.getFullYear() === year);
                         const p = res ? parseInt(res.Final) : null;
-                        tags += `<div class="person-tag ${status.includes("talan") ? 'status-talan' : 'status-biztos'}">
-                            ${info.emoji} ${info.alias} ${p && p <= 3 ? '🥇🥈🥉'[p-1] : p ? '🏅' : ''}
-                        </div>`;
+                        let icon = (p === 1) ? "🥇" : (p === 2) ? "🥈" : (p === 3) ? "🥉" : "";
+                        tags += `<div class="person-tag ${status.includes("talan") ? 'status-talan' : 'status-biztos'}">${info.emoji} ${info.alias} ${icon}</div>`;
                     }
                 });
                 html += `<div class="event-card"><strong>${e.Event}</strong>${tags}</div>`;
             });
             cal.innerHTML += html + `</div>`;
         }
-        renderBoard('monthlyLeaderboard', calculateStats('month', monthIndex));
-        renderBoard('yearlyLeaderboard', calculateStats('year'));
-        renderBoard('allTimeLeaderboard', calculateStats('all'));
+        renderDynamicLeaderboards();
     }
 
     function setupMonthSelect() {
         const sel = document.getElementById('monthSelect');
         const mNames = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
+        sel.innerHTML = '';
         mNames.forEach((m, i) => {
             const opt = document.createElement('option'); opt.value = i; opt.textContent = m;
             if(i === new Date().getMonth()) opt.selected = true;
