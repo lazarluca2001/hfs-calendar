@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>HFS Calendar 2026</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .calendar-grid { 
+            display: grid; 
+            grid-template-columns: repeat(7, 1fr); 
+            gap: 2px; 
+            background-color: #ddd;
+        }
+        .day { 
+            background: white; 
+            min-height: 100px; 
+            padding: 5px; 
+            border: 1px solid #eee;
+        }
+        .header { font-weight: bold; background: #f4f4f4; text-align: center; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>HFS | European Tour 2026</h1>
+    <select id="monthSelect">
+        <option value="0">Január</option>
+        <option value="1">Február</option>
+        <option value="2">Március</option>
+        </select>
+
+    <div class="calendar-grid" id="calendar">
+        </div>
+
+    <script>
+        // Ide jön majd a logika, ami kiszámolja a napokat
+    </script>
+</body>
+</html>
