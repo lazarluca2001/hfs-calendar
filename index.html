@@ -84,11 +84,18 @@
                 if(obj.Event) allWishlistEvents.push(obj);
             }
 
+            // FRISSÍTETT INDEXEK (B oszloptól indulva)
             const rowsE = csvE.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
-            const headersE = rowsE[4];
             for(let i = 5; i < rowsE.length; i++) {
-                let obj = {}; headersE.forEach((h, idx) => { if(h) obj[h] = rowsE[i][idx]; });
-                if(obj.Event) pastResults.push(obj);
+                const r = rowsE[i];
+                if(r.length < 12) continue;
+                pastResults.push({
+                    Name: r[1],   // B oszlop (Név)
+                    Date: r[4],   // E oszlop (Dátum)
+                    Event: r[3],  // D oszlop (Esemény)
+                    Final: r[10], // K oszlop (Helyezés)
+                    Point: r[11]  // L oszlop (Pontszám)
+                });
             }
 
             setupMonthSelect();
@@ -128,7 +135,7 @@
                 <div style="font-size: 1.2em">${resztvevokMap[k].emoji}</div>
                 <div class="leader-info">
                     <span class="leader-name">${resztvevokMap[k].alias}</span>
-                    <span class="leader-stats">${stats[k].points} pont | ${stats[k].finals} f.</span>
+                    <span class="leader-stats">${stats[k].points} pont</span>
                 </div>
                 <div class="leader-medals">${'🥇'.repeat(stats[k].gold)}${'🥈'.repeat(stats[k].silver)}${'🥉'.repeat(stats[k].bronze)}</div>
             </div>
@@ -140,42 +147,23 @@
         const wDays = ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"];
         wDays.forEach(d => cal.innerHTML += `<div class="weekday">${d}</div>`);
         
-        const year = 2026;
-        const firstDay = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
-        const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-        const today = new Date();
-        
+        const year = 2026, firstDay = (new Date(year, monthIndex, 1).getDay() + 6) % 7, daysInMonth = new Date(year, monthIndex + 1, 0).getDate(), today = new Date();
         for(let i = 0; i < firstDay; i++) cal.innerHTML += `<div class="day empty"></div>`;
         
         for(let d = 1; d <= daysInMonth; d++) {
             const current = new Date(year, monthIndex, d); current.setHours(0,0,0,0);
-            
             const daily = allWishlistEvents.filter(e => {
                 const s = parseDate(e["Start date"]), end = parseDate(e["End date"]);
                 return s && end && current >= s && current <= end;
             });
-
             let html = `<div class="day ${current.toDateString() === today.toDateString() ? 'today' : ''}"><span class="day-number">${d}</span>`;
-            
             daily.forEach(e => {
                 let tags = "";
                 Object.entries(resztvevokMap).forEach(([fullName, info]) => {
                     const status = (e[info.alias] || "").toLowerCase();
                     if (status.includes("igen") || status.includes("talan") || status.includes("igazolt")) {
-                        
-                        // ÚJ MÓDSZER: Név + Évszám ellenőrzése
-                        const res = pastResults.find(r => {
-                            const nameMatch = r.Name === fullName;
-                            const eventMatch = r.Event.toLowerCase().includes(e.Event.toLowerCase());
-                            const rDate = parseDate(r.Date);
-                            const eDate = parseDate(e["Start date"]);
-                            const yearMatch = rDate && eDate && rDate.getFullYear() === eDate.getFullYear();
-                            
-                            return nameMatch && eventMatch && yearMatch;
-                        });
-
+                        const res = pastResults.find(r => r.Name === fullName && r.Event.toLowerCase().includes(e.Event.toLowerCase()));
                         const p = res ? parseInt(res.Final) : null;
-                        
                         tags += `<div class="person-tag ${status.includes("talan") ? 'status-talan' : 'status-biztos'}">
                             ${info.emoji} ${info.alias} ${p && p <= 3 ? '🥇🥈🥉'[p-1] : p ? '🏅' : ''}
                         </div>`;
@@ -185,7 +173,6 @@
             });
             cal.innerHTML += html + `</div>`;
         }
-        
         renderBoard('monthlyLeaderboard', calculateStats('month', monthIndex));
         renderBoard('yearlyLeaderboard', calculateStats('year'));
         renderBoard('allTimeLeaderboard', calculateStats('all'));
@@ -202,7 +189,6 @@
         });
         sel.onchange = (e) => render(parseInt(e.target.value));
     }
-
     init();
 </script>
 </body>
