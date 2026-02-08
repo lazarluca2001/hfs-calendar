@@ -107,7 +107,6 @@
         
         .day { background: var(--card-bg); padding: 8px; display: flex; flex-direction: column; box-sizing: border-box; position: relative; }
         
-        /* SZÜRKÍTETT NAPOK STÍLUSA */
         .empty-day-pre, .empty-day-post {
             background-color: var(--empty-day-fill);
             background-image: radial-gradient(var(--empty-dots) 1px, transparent 0);
@@ -118,28 +117,27 @@
         .day-number { font-weight: bold; color: var(--text-color); opacity: 0.5; font-size: 0.85em; margin-bottom: 5px; }
         .today { background: var(--today-bg) !important; box-shadow: inset 0 0 0 2px var(--hfs-red); }
 
+        /* EGYMÁS MELLETTI TAGOK STÍLUSA */
         .event-card { 
             background-color: var(--event-card-bg); padding: 8px; border-radius: 10px; 
-            border: 1px solid var(--event-card-border); margin-bottom: 6px; cursor: pointer;
-            z-index: 2;
+            border: 1px solid var(--event-card-border); margin-bottom: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
 
-        .event-header { display: flex; justify-content: space-between; align-items: flex-start; }
-        .event-title { font-weight: 800; color: var(--hfs-red); font-size: 0.85em; }
-        .event-indicator { font-size: 0.7em; color: var(--hfs-red); transition: transform 0.3s ease; }
-        .event-card.open .event-indicator { transform: rotate(180deg); }
+        .event-title { font-weight: 800; color: var(--hfs-red); font-size: 0.85em; margin-bottom: 8px; display: block; }
 
         .participants-container { 
-            max-height: 0; overflow: hidden; opacity: 0;
-            transition: max-height 0.4s ease, opacity 0.3s ease;
+            display: flex;
+            flex-wrap: wrap; /* Ez teszi egymás mellé a kártyákat */
+            gap: 6px;
         }
-        .event-card.open .participants-container { max-height: 500px; opacity: 1; margin-top: 10px; }
 
         .person-tag { 
             background: var(--status-biztos-bg); padding: 4px 8px; border-radius: 15px; 
-            font-size: 0.8em; font-weight: 600; display: flex; align-items: center; gap: 5px;
-            margin-top: 3px; border: 1px solid var(--border-color); color: var(--text-color);
+            font-size: 0.75em; font-weight: 600; display: flex; align-items: center; gap: 5px;
+            border: 1px solid var(--border-color); color: var(--text-color);
             border-left: 4px solid #ccc;
+            white-space: nowrap; /* Ne törjön ketté a név */
         }
         .status-biztos { border-left-color: var(--status-biztos-border); }
         .status-talan { border-left-color: var(--status-talan-border); }
@@ -212,20 +210,22 @@
     }
 
     async function init() {
-        const res = await fetch(wishlistUrl);
-        const csv = await res.text();
-        const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
-        const headers = rows[3];
-        allEvents = [];
-        for(let i = 4; i < rows.length; i++) {
-            let obj = {}; headers.forEach((h, idx) => { if(h) obj[h] = rows[i][idx]; });
-            if(obj.Event) {
-                obj._start = parseHungarianDate(obj["Start date"]);
-                obj._end = parseHungarianDate(obj["End date"]);
-                if(obj._start) allEvents.push(obj);
+        try {
+            const res = await fetch(wishlistUrl);
+            const csv = await res.text();
+            const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
+            const headers = rows[3];
+            allEvents = [];
+            for(let i = 4; i < rows.length; i++) {
+                let obj = {}; headers.forEach((h, idx) => { if(h) obj[h] = rows[i][idx]; });
+                if(obj.Event) {
+                    obj._start = parseHungarianDate(obj["Start date"]);
+                    obj._end = parseHungarianDate(obj["End date"]);
+                    if(obj._start) allEvents.push(obj);
+                }
             }
-        }
-        renderFilter(); updateNext(); setupMonthSelect(); render(currentMonthIdx);
+            renderFilter(); updateNext(); setupMonthSelect(); render(currentMonthIdx);
+        } catch(e) { console.error("Hiba az adatok betöltésekor", e); }
     }
 
     function renderFilter() {
@@ -262,20 +262,22 @@
         const cal = document.getElementById('calendar'); cal.innerHTML = '';
         const mNames = ["Január","Február","Március","Április","Május","Június","Július","Augusztus","Szeptember","Október","November","December"];
         document.getElementById('currentMonthHeader').innerText = mNames[m];
-        ["Hétfő","Kedd","Szerda","Csütörtök","Péntek","Szombat","Vasárnap"].forEach(d => cal.innerHTML += `<div class="weekday">${d}</div>`);
+        ["Hétfő","Kedd","Szerda","Csütörtök","Péntek","Szo","Vasárnap"].forEach((d, idx) => {
+            const name = (idx === 5) ? "Szombat" : d; // Rövidítés javítása ha szükséges
+            cal.innerHTML += `<div class="weekday">${name}</div>`;
+        });
         
         const first = (new Date(2026, m, 1).getDay() + 6) % 7;
         const days = new Date(2026, m+1, 0).getDate();
         
-        // Hónap eleji szürkített napok
         for(let i=0; i<first; i++) cal.innerHTML += `<div class="day empty-day-pre"></div>`;
         
-        // Aktuális napok
         for(let d=1; d<=days; d++) {
             const currDate = new Date(2026, m, d);
             const curr = currDate.setHours(0,0,0,0);
             const evs = allEvents.filter(e => curr >= e._start.getTime() && curr <= e._end.getTime());
             let html = `<div class="day ${new Date().setHours(0,0,0,0) === curr ? 'today' : ''}"><span class="day-number">${d}</span>`;
+            
             evs.forEach(e => {
                 let tags = "";
                 Object.keys(resztvevokMap).forEach(name => {
@@ -287,11 +289,8 @@
                 
                 if(tags) {
                     html += `
-                        <div class="event-card" onclick="this.classList.toggle('open')">
-                            <div class="event-header">
-                                <span class="event-title">${e.Event}</span>
-                                <span class="event-indicator">▼</span>
-                            </div>
+                        <div class="event-card">
+                            <span class="event-title">${e.Event}</span>
                             <div class="participants-container">${tags}</div>
                         </div>`;
                 }
@@ -299,7 +298,6 @@
             cal.innerHTML += html + `</div>`;
         }
         
-        // Hónap végi szürkített napok
         const totalProcessed = first + days;
         const remaining = totalProcessed % 7 === 0 ? 0 : 7 - (totalProcessed % 7);
         for(let i=0; i<remaining; i++) cal.innerHTML += `<div class="day empty-day-post"></div>`;
