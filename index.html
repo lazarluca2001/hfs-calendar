@@ -104,16 +104,46 @@
         .day-number { font-weight: bold; color: var(--text-color); opacity: 0.5; font-size: 0.85em; margin-bottom: 5px; }
         .today { background: var(--today-bg) !important; box-shadow: inset 0 0 0 2px var(--hfs-red); }
 
+        /* LENYÍLÓ EVENT KÁRTYA STÍLUS */
         .event-card { 
             background-color: var(--event-card-bg); padding: 8px; border-radius: 10px; 
-            border: 1px solid var(--event-card-border); margin-bottom: 6px; box-shadow: inset 0 0 5px rgba(0,0,0,0.02);
+            border: 1px solid var(--event-card-border); margin-bottom: 6px; 
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.02);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
         }
-        .event-title { font-weight: 800; color: var(--hfs-red); font-size: 0.85em; margin-bottom: 6px; display: block; }
+        .event-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+
+        .event-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .event-title { font-weight: 800; color: var(--hfs-red); font-size: 0.85em; display: block; margin-bottom: 0; padding-right: 15px; }
+        
+        /* Lenyitást jelző nyíl */
+        .event-indicator {
+            font-size: 0.7em;
+            color: var(--hfs-red);
+            transition: transform 0.3s ease;
+        }
+        .event-card.open .event-indicator { transform: rotate(180deg); }
+
+        /* A résztvevők konténere */
+        .participants-container { 
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: max-height 0.4s ease, opacity 0.3s ease, margin-top 0.3s ease;
+        }
+
+        .event-card.open .participants-container {
+            max-height: 500px; /* Bőven elegendő hely a neveknek */
+            opacity: 1;
+            margin-top: 10px;
+        }
 
         .person-tag { 
             background: var(--status-biztos-bg); padding: 4px 8px; border-radius: 15px; 
             font-size: 0.8em; font-weight: 600; display: flex; align-items: center; gap: 5px;
-            margin-top: 3px; border: 1px solid var(--border-color); color: var(--text-color);
+            margin-top: 4px; border: 1px solid var(--border-color); color: var(--text-color);
         }
         .status-biztos { border-left: 4px solid var(--status-biztos-border); }
         .status-talan { border-left: 4px solid var(--status-talan-border); }
@@ -187,6 +217,7 @@
         const csv = await res.text();
         const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
         const headers = rows[3];
+        allEvents = [];
         for(let i = 4; i < rows.length; i++) {
             let obj = {}; headers.forEach((h, idx) => { if(h) obj[h] = rows[i][idx]; });
             if(obj.Event) {
@@ -245,7 +276,18 @@
                         tags += `<div class="person-tag ${s.includes("talan") ? 'status-talan' : 'status-biztos'}"><span>${resztvevokMap[name]}</span> ${name}</div>`;
                     }
                 });
-                if(tags) html += `<div class="event-card"><span class="event-title">${e.Event}</span>${tags}</div>`;
+                
+                // Csak akkor renderelünk kártyát, ha van releváns résztvevő
+                if(tags) {
+                    html += `
+                        <div class="event-card" onclick="this.classList.toggle('open')">
+                            <div class="event-header">
+                                <span class="event-title">${e.Event}</span>
+                                <span class="event-indicator">▼</span>
+                            </div>
+                            <div class="participants-container">${tags}</div>
+                        </div>`;
+                }
             });
             cal.innerHTML += html + `</div>`;
         }
