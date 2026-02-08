@@ -45,6 +45,7 @@
         
         .main-layout { display: flex; height: 100vh; width: 100vw; }
 
+        /* SIDEBAR - FIX MAGASSÁG, BELSŐ GÖRGETÉSSEL HA KELL */
         .sidebar {
             width: 320px;
             background: var(--card-bg);
@@ -56,14 +57,17 @@
             height: 100vh;
             box-sizing: border-box;
             z-index: 10;
+            flex-shrink: 0;
         }
 
+        /* NAPTÁR SZEKCIÓ - GÖRGETHETŐ */
         .calendar-section { 
             flex: 1; 
             height: 100vh; 
             display: flex; 
             flex-direction: column; 
             background: var(--bg-color);
+            overflow-y: auto; /* Itt engedélyezzük a függőleges görgetést */
         }
 
         .month-display-container {
@@ -71,10 +75,13 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 15px; /* Kicsit csökkentve */
+            padding: 15px;
             background: var(--card-bg);
             border-bottom: 1px solid var(--border-color);
             gap: 10px;
+            position: sticky;
+            top: 0;
+            z-index: 20;
         }
 
         .month-title-group {
@@ -86,7 +93,7 @@
 
         .month-display {
             color: var(--hfs-red);
-            font-size: 2.2em; /* Kicsit finomítva */
+            font-size: 2.2em;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 2px;
@@ -132,11 +139,7 @@
 
         .sidebar-card h3 { margin: 0 0 10px 0; color: var(--hfs-red); font-size: 0.9em; text-transform: uppercase; }
 
-        .next-event-info { color: var(--text-color); }
-        .next-event-info h2 { margin: 0; color: var(--text-color); font-size: 1.1em; }
-        .next-event-info p { margin: 6px 0; color: var(--text-color); opacity: 0.9; font-size: 0.9em; }
-        .countdown-timer-sidebar { font-weight: bold; color: var(--hfs-red); margin-top: 8px; display: block; font-size: 0.95em; }
-
+        /* JAVÍTOTT SIDEBAR NEVEK */
         .member-filter { 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
@@ -147,94 +150,101 @@
             width: 100%;
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            padding: 8px 5px;
-            border-radius: 6px;
+            padding: 10px 4px;
+            border-radius: 8px;
             color: var(--text-color);
             font-weight: 600;
             cursor: pointer;
-            font-size: 0.8em;
+            font-size: 0.85em; /* Kicsit nagyobb az olvashatóságért */
             text-align: center;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 4px;
+            gap: 6px;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
         }
         
+        .filter-btn span { font-size: 1.2em; }
         .filter-btn.active { border-color: var(--hfs-red); background: var(--hfs-light-red); }
 
-        /* JAVÍTOTT RÁCS: Alacsonyabb fejléc sáv */
+        /* NAPTÁR RÁCS - DINAMIKUS MAGASSÁG */
         .calendar-grid { 
             display: grid; 
             grid-template-columns: repeat(7, 1fr); 
-            grid-template-rows: 32px repeat(6, 1fr); /* 45px-ről 32px-re csökkentve */
+            grid-auto-rows: minmax(150px, auto); /* Legalább 150px, de nőhet ha sok az esemény */
             gap: 1px; 
             background: var(--border-color); 
-            flex: 1; 
             width: 100%;
+            flex: 1;
         }
         
         .weekday { 
             background: var(--hfs-red); 
             color: #ffffff; 
+            height: 35px;
             display: flex; 
             align-items: center; 
             justify-content: center; 
             font-weight: bold; 
-            font-size: 0.75em; /* Kisebb betű a keskenyebb sávhoz */
+            font-size: 0.8em; 
             text-transform: uppercase;
+            position: sticky;
+            top: 110px; /* A month-display-container magassága után ragadjon be */
+            z-index: 15;
         }
         
         .day { 
             background: var(--card-bg); 
-            padding: 6px; 
+            padding: 8px; 
             display: flex;
             flex-direction: column;
             box-sizing: border-box;
-            overflow-y: auto;
+            min-height: 150px;
         }
 
         .empty-day-post { background-color: var(--empty-gray); }
-        .day-number { font-weight: bold; color: var(--text-color); opacity: 0.5; font-size: 0.85em; margin-bottom: 2px; }
+        .day-number { font-weight: bold; color: var(--text-color); opacity: 0.5; font-size: 0.9em; margin-bottom: 5px; }
         .today { background: var(--today-bg) !important; box-shadow: inset 0 0 0 2px var(--hfs-red); }
 
         .event-card { 
             background-color: var(--hfs-light-red);
-            padding: 5px; border-radius: 4px; font-size: 0.7em; 
+            padding: 6px; border-radius: 6px; font-size: 0.75em; 
             color: var(--event-text); 
-            border-left: 3px solid var(--hfs-red);
-            margin-bottom: 3px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            border-left: 4px solid var(--hfs-red);
+            margin-bottom: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
-        .event-title { font-weight: bold; display: block; margin-bottom: 3px; font-size: 0.9em; }
+        .event-title { font-weight: bold; display: block; margin-bottom: 4px; font-size: 1em; }
 
         .person-tag { 
-            padding: 2px 5px; 
-            border-radius: 3px; 
-            font-size: 0.85em; 
+            padding: 3px 6px; 
+            border-radius: 4px; 
+            font-size: 0.9em; 
             font-weight: 700;
             display: flex; 
             align-items: center; 
-            gap: 3px;
-            margin-top: 2px;
+            gap: 4px;
+            margin-top: 3px;
         }
         
-        .status-biztos { background-color: var(--status-biztos-bg); color: var(--status-biztos-text); border-left: 2px solid var(--status-biztos-border); }
-        .status-talan { background-color: var(--status-talan-bg); color: var(--status-talan-text); border-left: 2px solid var(--status-talan-border); }
+        .status-biztos { background-color: var(--status-biztos-bg); color: var(--status-biztos-text); border-left: 3px solid var(--status-biztos-border); }
+        .status-talan { background-color: var(--status-talan-bg); color: var(--status-talan-text); border-left: 3px solid var(--status-talan-border); }
 
-        .theme-switch-wrapper { margin-top: auto; padding-top: 10px; display: flex; align-items: center; gap: 10px; font-size: 0.8em; }
-        .theme-switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+        .theme-switch-wrapper { margin-top: auto; padding-top: 10px; display: flex; align-items: center; gap: 10px; font-size: 0.85em; }
+        .theme-switch { position: relative; display: inline-block; width: 44px; height: 22px; }
         .theme-switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
-        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--hfs-red); }
-        input:checked + .slider:before { transform: translateX(20px); }
+        input:checked + .slider:before { transform: translateX(22px); }
     </style>
 </head>
 <body>
 
 <div class="main-layout">
     <aside class="sidebar">
-        <h1 style="color:var(--hfs-red); font-size: 1.3em; margin: 0; letter-spacing: 1px;">HFS 2026</h1>
+        <h1 style="color:var(--hfs-red); font-size: 1.4em; margin: 0; letter-spacing: 1px;">HFS 2026</h1>
         
         <div class="sidebar-card" id="nextEventCard">
             <h3>Következő állomás</h3>
