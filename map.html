@@ -8,10 +8,18 @@
     <style>
         :root {
             --hfs-red: #800000;
+            --bg-color: #f4f4f4;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-color: #dddddd;
+        }
+
+        [data-theme="dark"] {
             --bg-color: #0a0a0a;
             --card-bg: #1a1a1a;
             --text-color: #f0f0f0;
             --border-color: #333333;
+            --hfs-red: #ff4d4d;
         }
 
         body, html { 
@@ -19,17 +27,13 @@
             background: var(--bg-color); 
             font-family: 'Segoe UI', sans-serif;
             color: var(--text-color);
+            transition: background 0.3s ease;
             overflow: hidden;
         }
 
-        /* Layout */
-        .map-container {
-            display: flex;
-            height: 100vh;
-            width: 100vw;
-        }
+        .map-container { display: flex; height: 100vh; width: 100vw; }
 
-        /* Sidebar a helyszínek listájához */
+        /* Sidebar */
         .location-sidebar {
             width: 350px;
             background: var(--card-bg);
@@ -39,94 +43,39 @@
             z-index: 1000;
         }
 
-        .sidebar-header {
-            padding: 20px;
-            border-bottom: 1px solid var(--border-color);
-        }
+        .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border-color); }
+        .sidebar-header h1 { color: var(--hfs-red); margin: 0; font-size: 1.5em; }
 
-        .sidebar-header h1 {
-            color: var(--hfs-red);
-            margin: 0;
-            font-size: 1.5em;
-            letter-spacing: 1px;
-        }
-
-        .event-list {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px;
-        }
-
+        .event-list { flex: 1; overflow-y: auto; padding: 10px; }
         .event-item {
-            padding: 15px;
-            margin-bottom: 10px;
+            padding: 15px; margin-bottom: 10px;
             background: var(--bg-color);
-            border-radius: 10px;
-            border: 1px solid var(--border-color);
-            cursor: pointer;
-            transition: all 0.2s;
+            border-radius: 10px; border: 1px solid var(--border-color);
+            cursor: pointer; transition: all 0.2s;
         }
+        .event-item:hover { border-color: var(--hfs-red); }
+        .event-item h3 { margin: 0; font-size: 0.9em; color: var(--hfs-red); }
 
-        .event-item:hover {
-            border-color: var(--hfs-red);
-            transform: translateX(5px);
-        }
+        #map { flex: 1; }
 
-        .event-item h3 {
-            margin: 0 0 5px 0;
-            font-size: 0.9em;
-            color: var(--hfs-red);
-        }
+        /* Theme Switch */
+        .theme-switch-wrapper { padding: 20px; border-top: 1px solid var(--border-color); display: flex; align-items: center; gap: 10px; font-weight: bold; font-size: 0.8em; }
+        .theme-switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+        .theme-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--hfs-red); }
+        input:checked + .slider:before { transform: translateX(20px); }
 
-        .event-item p {
-            margin: 0;
-            font-size: 0.8em;
-            opacity: 0.8;
-        }
-
-        /* A Térkép */
-        #map {
-            flex: 1;
-            background: #242424; /* Térkép betöltés alatti szín */
-        }
-
-        /* Leaflet Sötét Mód Fix */
-        .leaflet-container {
-            background: #242424 !important;
-        }
-
-        /* Popup design */
-        .custom-popup .leaflet-popup-content-wrapper {
-            background: var(--card-bg);
-            color: var(--text-color);
-            border-radius: 12px;
-            border: 1px solid var(--hfs-red);
-        }
-
-        .custom-popup .leaflet-popup-tip {
-            background: var(--hfs-red);
-        }
-
-        .popup-content h2 {
-            color: var(--hfs-red);
-            margin: 0 0 5px 0;
-            font-size: 1.1em;
-        }
-        
         .nav-back {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            background: var(--hfs-red);
-            color: white;
-            text-decoration: none;
-            padding: 10px 20px;
-            border-radius: 30px;
-            font-weight: bold;
-            z-index: 2000;
-            font-size: 0.9em;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            position: absolute; bottom: 20px; right: 20px;
+            background: var(--hfs-red); color: white; text-decoration: none;
+            padding: 10px 20px; border-radius: 30px; font-weight: bold; z-index: 2000;
         }
+
+        /* Popup */
+        .custom-popup .leaflet-popup-content-wrapper { background: var(--card-bg); color: var(--text-color); border-radius: 8px; }
+        .custom-popup .leaflet-popup-tip { background: var(--card-bg); }
     </style>
 </head>
 <body>
@@ -135,110 +84,96 @@
     <aside class="location-sidebar">
         <div class="sidebar-header">
             <h1>HFS TOUR MAP</h1>
-            <p style="font-size: 0.8em; opacity: 0.6;">Kattints egy eseményre a térképhez!</p>
         </div>
-        <div id="eventList" class="event-list">
-            </div>
+        <div id="eventList" class="event-list"></div>
+        
+        <div class="theme-switch-wrapper">
+            <span>Sötét mód</span>
+            <label class="theme-switch">
+                <input type="checkbox" id="checkbox">
+                <span class="slider"></span>
+            </label>
+        </div>
     </aside>
-
     <div id="map"></div>
 </div>
 
-<a href="index.html" class="nav-back">⬅ Vissza a naptárhoz</a>
+<a href="index.html" class="nav-back">⬅ Naptár</a>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
     const wishlistUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=338581218&single=true&output=csv';
 
-    // Térkép inicializálása (Európa központ)
     const map = L.map('map').setView([47.5, 19.0], 5);
+    
+    // Térkép rétegek definíciója
+    const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png');
+    const lightTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/voyager/{z}/{x}/{y}{r}.png');
 
-    // Sötét térkép stílus (CartoDB Dark Matter)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 20
-    }).addTo(map);
-
-    async function loadMapData() {
-        try {
-            const res = await fetch(wishlistUrl);
-            const csv = await res.text();
-            const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
-            const headers = rows[3];
-            const eventList = document.getElementById('eventList');
-
-            const markers = [];
-
-            for(let i = 4; i < rows.length; i++) {
-                let obj = {}; 
-                headers.forEach((h, idx) => { if(h) obj[h] = rows[i][idx]; });
-                
-                if(obj.Event && obj.Location) {
-                    // Itt egy kis trükk: Geocoding (Helyszín név -> Koordináta)
-                    // Mivel a JS-ben nincs beépített geocoder, egy ingyenes API-t használunk (Nominatim)
-                    const coords = await getCoordinates(obj.Location);
-                    
-                    if(coords) {
-                        const marker = L.marker([coords.lat, coords.lon]).addTo(map);
-                        
-                        const popupContent = `
-                            <div class="popup-content">
-                                <h2>${obj.Event}</h2>
-                                <p><b>Helyszín:</b> ${obj.Location}</p>
-                                <p><b>Dátum:</b> ${obj["Start date"]}</p>
-                            </div>
-                        `;
-                        
-                        marker.bindPopup(popupContent, { className: 'custom-popup' });
-
-                        // Sidebar elem hozzáadása
-                        const div = document.createElement('div');
-                        div.className = 'event-item';
-                        div.innerHTML = `
-                            <h3>${obj.Event}</h3>
-                            <p>📍 ${obj.Location}</p>
-                            <p>📅 ${obj["Start date"]}</p>
-                        `;
-                        div.onclick = () => {
-                            map.flyTo([coords.lat, coords.lon], 12);
-                            marker.openPopup();
-                        };
-                        eventList.appendChild(div);
-                        
-                        markers.push([coords.lat, coords.lon]);
-                    }
-                }
-            }
-
-            // Ha vannak markerek, állítsuk be a nézetet, hogy mind látszódjon
-            if(markers.length > 0) {
-                const bounds = L.latLngBounds(markers);
-                map.fitBounds(bounds, { padding: [50, 50] });
-            }
-
-        } catch (e) {
-            console.error("Hiba a térkép betöltésekor:", e);
+    // Theme kezelés
+    const toggle = document.querySelector('#checkbox');
+    function setTheme(isDark) {
+        if (isDark) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            map.removeLayer(lightTiles);
+            darkTiles.addTo(map);
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+            map.removeLayer(darkTiles);
+            lightTiles.addTo(map);
+            localStorage.setItem('theme', 'light');
         }
     }
 
-    // Segédfüggvény a városnév koordinátára váltásához
+    toggle.addEventListener('change', (e) => setTheme(e.target.checked));
+
+    // Alapértelmezett betöltés
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    toggle.checked = savedTheme === 'dark';
+    setTheme(savedTheme === 'dark');
+
     async function getCoordinates(city) {
         try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}`);
-            const data = await response.json();
-            if (data && data.length > 0) {
-                return { lat: data[0].lat, lon: data[0].lon };
-            }
-        } catch (e) {
-            return null;
-        }
-        return null;
+            // "City, Europe" hozzáadása a pontosításhoz (Szófia fix)
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city + ", Europe")}&limit=1`);
+            const data = await res.json();
+            return data.length > 0 ? { lat: data[0].lat, lon: data[0].lon } : null;
+        } catch (e) { return null; }
     }
 
-    loadMapData();
-</script>
+    async function loadData() {
+        const res = await fetch(wishlistUrl);
+        const csv = await res.text();
+        const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
+        const headers = rows[3];
+        const list = document.getElementById('eventList');
+        const markers = [];
 
+        for(let i = 4; i < rows.length; i++) {
+            let obj = {}; headers.forEach((h, idx) => { if(h) obj[h] = rows[i][idx]; });
+            if(obj.Event && obj.Location) {
+                const coords = await getCoordinates(obj.Location);
+                if(coords) {
+                    const marker = L.marker([coords.lat, coords.lon]).addTo(map);
+                    marker.bindPopup(`<b>${obj.Event}</b><br>${obj.Location}`, {className: 'custom-popup'});
+                    
+                    const item = document.createElement('div');
+                    item.className = 'event-item';
+                    item.innerHTML = `<h3>${obj.Event}</h3><p>📍 ${obj.Location}</p>`;
+                    item.onclick = () => {
+                        map.flyTo([coords.lat, coords.lon], 10);
+                        marker.openPopup();
+                    };
+                    list.appendChild(item);
+                    markers.push([coords.lat, coords.lon]);
+                }
+            }
+        }
+        if(markers.length > 0) map.fitBounds(L.latLngBounds(markers), {padding: [50,50]});
+    }
+
+    loadData();
+</script>
 </body>
 </html>
