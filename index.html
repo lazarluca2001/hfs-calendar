@@ -19,10 +19,12 @@
             --event-card-bg: #fff5f5;
             --event-card-border: #eecaca;
             --today-bg: #ffebee;
+            --empty-day-fill: #f9f9f9;
+            --empty-dots: #e0e0e0;
         }
 
         [data-theme="dark"] {
-            --bg-color: #0f0f0f;
+            --bg-color: #0a0a0a;
             --card-bg: #1a1a1a;
             --text-color: #f0f0f0;
             --border-color: #333333;
@@ -33,6 +35,8 @@
             --status-biztos-bg: #2a2a2a;
             --status-talan-bg: #2a2a2a;
             --today-bg: #3d0a0a;
+            --empty-day-fill: #141414;
+            --empty-dots: #252525;
         }
 
         body, html { margin: 0; padding: 0; height: 100vh; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text-color); }
@@ -74,14 +78,9 @@
             background: var(--card-bg); border: 2px solid var(--hfs-red); padding: 6px 15px;
             border-radius: 8px; color: var(--text-color); font-weight: 600; cursor: pointer;
         }
-        .today-btn:hover { background: var(--hfs-light-red); }
 
         .sidebar-card { background: var(--bg-color); border-radius: 12px; padding: 15px; border: 1px solid var(--border-color); }
         .sidebar-card h3 { margin: 0 0 10px 0; color: var(--hfs-red); font-size: 0.9em; text-transform: uppercase; }
-
-        .next-event-info h2 { margin: 0; color: var(--text-color); font-size: 1.1em; }
-        .next-event-info p { margin: 6px 0; color: var(--text-color); font-size: 0.9em; opacity: 0.9; }
-        .countdown-timer-sidebar { font-weight: bold; color: var(--hfs-red); margin-top: 8px; display: block; }
 
         .member-filter { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .filter-btn {
@@ -92,8 +91,12 @@
         .filter-btn.active { border-color: var(--hfs-red); background: var(--hfs-light-red); }
 
         .calendar-grid { 
-            display: grid; grid-template-columns: repeat(7, 1fr); 
-            grid-auto-rows: minmax(120px, auto); gap: 1px; background: var(--border-color); width: 100%;
+            display: grid; 
+            grid-template-columns: repeat(7, 1fr); 
+            grid-auto-rows: minmax(130px, auto); 
+            gap: 1px; 
+            background: var(--border-color); 
+            width: 100%;
         }
         
         .weekday { 
@@ -102,14 +105,23 @@
             font-weight: bold; font-size: 0.75em; text-transform: uppercase;
         }
         
-        .day { background: var(--card-bg); padding: 6px; display: flex; flex-direction: column; box-sizing: border-box; }
+        .day { background: var(--card-bg); padding: 8px; display: flex; flex-direction: column; box-sizing: border-box; position: relative; }
+        
+        /* SZÜRKÍTETT NAPOK STÍLUSA */
+        .empty-day-pre, .empty-day-post {
+            background-color: var(--empty-day-fill);
+            background-image: radial-gradient(var(--empty-dots) 1px, transparent 0);
+            background-size: 10px 10px;
+            opacity: 0.8;
+        }
+
         .day-number { font-weight: bold; color: var(--text-color); opacity: 0.5; font-size: 0.85em; margin-bottom: 5px; }
         .today { background: var(--today-bg) !important; box-shadow: inset 0 0 0 2px var(--hfs-red); }
 
         .event-card { 
             background-color: var(--event-card-bg); padding: 8px; border-radius: 10px; 
-            border: 1px solid var(--event-card-border); margin-bottom: 6px; 
-            cursor: pointer; position: relative;
+            border: 1px solid var(--event-card-border); margin-bottom: 6px; cursor: pointer;
+            z-index: 2;
         }
 
         .event-header { display: flex; justify-content: space-between; align-items: flex-start; }
@@ -148,7 +160,7 @@
         <h1 style="color:var(--hfs-red); font-size: 1.3em; margin: 0; letter-spacing: 1px;">HFS 2026</h1>
         <div class="sidebar-card">
             <h3>KÖVETKEZŐ ÁLLOMÁS</h3>
-            <div id="nextEventContent" class="next-event-info">Betöltés...</div>
+            <div id="nextEventContent" style="color: var(--text-color);">Betöltés...</div>
         </div>
         <div class="sidebar-card">
             <h3>TAGOK SZŰRÉSE</h3>
@@ -236,7 +248,7 @@
         const next = allEvents.filter(e => e._end && e._end >= now).sort((a,b) => a._start - b._start)[0];
         if(next) {
             const diff = Math.ceil((next._start - now) / 86400000);
-            document.getElementById('nextEventContent').innerHTML = `<h2>${next.Event}</h2><p>📍 ${next.Location || 'Prága'}</p><p>📅 ${next["Start date"]}</p><span class="countdown-timer-sidebar">${diff <= 0 ? "MA KEZDŐDIK! 🔥" : "Még " + diff + " nap"}</span>`;
+            document.getElementById('nextEventContent').innerHTML = `<h2 style="font-size:1.1em; margin:0">${next.Event}</h2><p style="margin:5px 0; font-size:0.9em; opacity:0.8">📍 ${next.Location || 'TBD'}</p><p style="margin:5px 0; font-size:0.9em; opacity:0.8">📅 ${next["Start date"]}</p><span style="font-weight:bold; color:var(--hfs-red)">${diff <= 0 ? "MA KEZDŐDIK! 🔥" : "Még " + diff + " nap"}</span>`;
         }
     }
 
@@ -255,8 +267,10 @@
         const first = (new Date(2026, m, 1).getDay() + 6) % 7;
         const days = new Date(2026, m+1, 0).getDate();
         
-        for(let i=0; i<first; i++) cal.innerHTML += `<div class="day"></div>`;
+        // Hónap eleji szürkített napok
+        for(let i=0; i<first; i++) cal.innerHTML += `<div class="day empty-day-pre"></div>`;
         
+        // Aktuális napok
         for(let d=1; d<=days; d++) {
             const currDate = new Date(2026, m, d);
             const curr = currDate.setHours(0,0,0,0);
@@ -284,6 +298,11 @@
             });
             cal.innerHTML += html + `</div>`;
         }
+        
+        // Hónap végi szürkített napok
+        const totalProcessed = first + days;
+        const remaining = totalProcessed % 7 === 0 ? 0 : 7 - (totalProcessed % 7);
+        for(let i=0; i<remaining; i++) cal.innerHTML += `<div class="day empty-day-post"></div>`;
     }
 
     function setupMonthSelect() {
