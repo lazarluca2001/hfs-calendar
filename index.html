@@ -12,7 +12,6 @@
             --status-biztos-border: #2e7d32;
             --status-talan-bg: #ffffff;
             --status-talan-border: #ef6c00;
-            --empty-gray: #f0f0f0;
             --bg-color: #f4f4f4;
             --card-bg: #ffffff;
             --text-color: #333333;
@@ -23,12 +22,12 @@
         }
 
         [data-theme="dark"] {
-            --bg-color: #0a0a0a;
-            --card-bg: #161616;
-            --text-color: #ffffff;
+            --bg-color: #0f0f0f;
+            --card-bg: #1a1a1a;
+            --text-color: #f0f0f0;
             --border-color: #333333;
-            --hfs-red: #cc0000;
-            --hfs-light-red: #2d1010;
+            --hfs-red: #ff4d4d;
+            --hfs-light-red: #2a1515;
             --event-card-bg: #241a1a;
             --event-card-border: #4a2a2a;
             --status-biztos-bg: #2a2a2a;
@@ -69,10 +68,13 @@
         }
         .nav-btn:hover { transform: scale(1.1); }
 
-        #monthSelect {
+        .controls-row { display: flex; gap: 10px; align-items: center; }
+
+        #monthSelect, .today-btn {
             background: var(--card-bg); border: 2px solid var(--hfs-red); padding: 6px 15px;
             border-radius: 8px; color: var(--text-color); font-weight: 600; cursor: pointer;
         }
+        .today-btn:hover { background: var(--hfs-light-red); }
 
         .sidebar-card { background: var(--bg-color); border-radius: 12px; padding: 15px; border: 1px solid var(--border-color); }
         .sidebar-card h3 { margin: 0 0 10px 0; color: var(--hfs-red); font-size: 0.9em; text-transform: uppercase; }
@@ -104,51 +106,33 @@
         .day-number { font-weight: bold; color: var(--text-color); opacity: 0.5; font-size: 0.85em; margin-bottom: 5px; }
         .today { background: var(--today-bg) !important; box-shadow: inset 0 0 0 2px var(--hfs-red); }
 
-        /* LENYÍLÓ EVENT KÁRTYA STÍLUS */
         .event-card { 
             background-color: var(--event-card-bg); padding: 8px; border-radius: 10px; 
             border: 1px solid var(--event-card-border); margin-bottom: 6px; 
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.02);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
+            cursor: pointer; position: relative;
         }
-        .event-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
 
         .event-header { display: flex; justify-content: space-between; align-items: flex-start; }
-        .event-title { font-weight: 800; color: var(--hfs-red); font-size: 0.85em; display: block; margin-bottom: 0; padding-right: 15px; }
-        
-        /* Lenyitást jelző nyíl */
-        .event-indicator {
-            font-size: 0.7em;
-            color: var(--hfs-red);
-            transition: transform 0.3s ease;
-        }
+        .event-title { font-weight: 800; color: var(--hfs-red); font-size: 0.85em; }
+        .event-indicator { font-size: 0.7em; color: var(--hfs-red); transition: transform 0.3s ease; }
         .event-card.open .event-indicator { transform: rotate(180deg); }
 
-        /* A résztvevők konténere */
         .participants-container { 
-            max-height: 0;
-            overflow: hidden;
-            opacity: 0;
-            transition: max-height 0.4s ease, opacity 0.3s ease, margin-top 0.3s ease;
+            max-height: 0; overflow: hidden; opacity: 0;
+            transition: max-height 0.4s ease, opacity 0.3s ease;
         }
-
-        .event-card.open .participants-container {
-            max-height: 500px; /* Bőven elegendő hely a neveknek */
-            opacity: 1;
-            margin-top: 10px;
-        }
+        .event-card.open .participants-container { max-height: 500px; opacity: 1; margin-top: 10px; }
 
         .person-tag { 
             background: var(--status-biztos-bg); padding: 4px 8px; border-radius: 15px; 
             font-size: 0.8em; font-weight: 600; display: flex; align-items: center; gap: 5px;
-            margin-top: 4px; border: 1px solid var(--border-color); color: var(--text-color);
+            margin-top: 3px; border: 1px solid var(--border-color); color: var(--text-color);
+            border-left: 4px solid #ccc;
         }
-        .status-biztos { border-left: 4px solid var(--status-biztos-border); }
-        .status-talan { border-left: 4px solid var(--status-talan-border); }
+        .status-biztos { border-left-color: var(--status-biztos-border); }
+        .status-talan { border-left-color: var(--status-talan-border); }
 
-        .theme-switch-wrapper { margin-top: auto; padding-top: 10px; display: flex; align-items: center; gap: 10px; font-size: 0.8em; }
+        .theme-switch-wrapper { margin-top: auto; padding-top: 10px; display: flex; align-items: center; gap: 10px; font-size: 0.8em; font-weight: 600; }
         .theme-switch { position: relative; display: inline-block; width: 40px; height: 20px; }
         .theme-switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
@@ -186,7 +170,10 @@
                 <h2 id="currentMonthHeader" class="month-display"></h2>
                 <button class="nav-btn" onclick="changeMonth(1)">❯</button>
             </div>
-            <select id="monthSelect"></select>
+            <div class="controls-row">
+                <button class="today-btn" onclick="goToToday()">Ma</button>
+                <select id="monthSelect"></select>
+            </div>
         </div>
         <div id="calendar" class="calendar-grid"></div>
     </main>
@@ -249,8 +236,14 @@
         const next = allEvents.filter(e => e._end && e._end >= now).sort((a,b) => a._start - b._start)[0];
         if(next) {
             const diff = Math.ceil((next._start - now) / 86400000);
-            document.getElementById('nextEventContent').innerHTML = `<h2>${next.Event}</h2><p>📍 ${next.Location || 'TBD'}</p><p>📅 ${next["Start date"]}</p><span class="countdown-timer-sidebar">${diff <= 0 ? "MA KEZDŐDIK! 🔥" : "Még " + diff + " nap"}</span>`;
+            document.getElementById('nextEventContent').innerHTML = `<h2>${next.Event}</h2><p>📍 ${next.Location || 'Prága'}</p><p>📅 ${next["Start date"]}</p><span class="countdown-timer-sidebar">${diff <= 0 ? "MA KEZDŐDIK! 🔥" : "Még " + diff + " nap"}</span>`;
         }
+    }
+
+    function goToToday() {
+        currentMonthIdx = new Date().getMonth();
+        document.getElementById('monthSelect').value = currentMonthIdx;
+        render(currentMonthIdx);
     }
 
     function render(m) {
@@ -265,7 +258,8 @@
         for(let i=0; i<first; i++) cal.innerHTML += `<div class="day"></div>`;
         
         for(let d=1; d<=days; d++) {
-            const curr = new Date(2026, m, d).setHours(0,0,0,0);
+            const currDate = new Date(2026, m, d);
+            const curr = currDate.setHours(0,0,0,0);
             const evs = allEvents.filter(e => curr >= e._start.getTime() && curr <= e._end.getTime());
             let html = `<div class="day ${new Date().setHours(0,0,0,0) === curr ? 'today' : ''}"><span class="day-number">${d}</span>`;
             evs.forEach(e => {
@@ -277,7 +271,6 @@
                     }
                 });
                 
-                // Csak akkor renderelünk kártyát, ha van releváns résztvevő
                 if(tags) {
                     html += `
                         <div class="event-card" onclick="this.classList.toggle('open')">
