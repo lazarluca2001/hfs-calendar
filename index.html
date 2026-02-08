@@ -32,7 +32,7 @@
             --hfs-light-red: #2d1010;
             --event-text: #ffd6d6;
             --empty-gray: #1a1a1a;
-            --status-biztos-bg: #1b2e1c;
+            --status-biztos-bg: #0e2b11;
             --status-biztos-border: #00ff40;
             --status-biztos-text: #80ff9f;
             --status-talan-bg: #2b1d0e;
@@ -59,34 +59,34 @@
         }
 
         .calendar-section { 
-    flex: 1; 
-    height: 100vh; 
-    display: flex; 
-    flex-direction: column; 
-    background: var(--bg-color);
-    /* Ez biztosítja, hogy a naptár görgethető legyen */
-    overflow-y: auto; 
-}
+            flex: 1; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            background: var(--bg-color);
+        }
 
-        /* JAVÍTOTT HÓNAP KIJELZŐ NYILAKKAL */
         .month-display-container {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: space-between;
-            padding: 15px 25px;
+            justify-content: center;
+            padding: 15px; /* Kicsit csökkentve */
             background: var(--card-bg);
             border-bottom: 1px solid var(--border-color);
+            gap: 10px;
         }
 
         .month-title-group {
             display: flex;
             align-items: center;
-            gap: 20px;
+            justify-content: center;
+            gap: 25px;
         }
 
         .month-display {
             color: var(--hfs-red);
-            font-size: 2em;
+            font-size: 2.2em; /* Kicsit finomítva */
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 2px;
@@ -98,28 +98,29 @@
             color: white;
             border: none;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 38px;
+            height: 38px;
             cursor: pointer;
-            font-size: 1.5em;
+            font-size: 1.2em;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: opacity 0.2s;
+            transition: transform 0.2s, opacity 0.2s;
         }
 
-        .nav-btn:hover { opacity: 0.8; }
+        .nav-btn:hover { opacity: 0.8; transform: scale(1.1); }
 
-        /* ÁTHELYEZETT SELECT DESIGN */
         #monthSelect {
             background: var(--card-bg);
             border: 2px solid var(--hfs-red);
-            padding: 5px 15px;
+            padding: 6px 15px;
             border-radius: 8px;
             color: var(--text-color);
             font-weight: 600;
             cursor: pointer;
             font-size: 0.9em;
+            min-width: 140px;
+            text-align: center;
         }
 
         .sidebar-card {
@@ -131,10 +132,10 @@
 
         .sidebar-card h3 { margin: 0 0 10px 0; color: var(--hfs-red); font-size: 0.9em; text-transform: uppercase; }
 
-        /* JAVÍTOTT SÖTÉT MÓD OLVASHATÓSÁG A SIDEBARON */
         .next-event-info { color: var(--text-color); }
-        .next-event-info h2 { margin: 0; color: var(--text-color); }
-        .next-event-info p { margin: 5px 0; color: var(--text-color); opacity: 0.9; }
+        .next-event-info h2 { margin: 0; color: var(--text-color); font-size: 1.1em; }
+        .next-event-info p { margin: 6px 0; color: var(--text-color); opacity: 0.9; font-size: 0.9em; }
+        .countdown-timer-sidebar { font-weight: bold; color: var(--hfs-red); margin-top: 8px; display: block; font-size: 0.95em; }
 
         .member-filter { 
             display: grid; 
@@ -146,14 +147,13 @@
             width: 100%;
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            padding: 10px 5px;
+            padding: 8px 5px;
             border-radius: 6px;
             color: var(--text-color);
             font-weight: 600;
             cursor: pointer;
-            font-size: 0.82em;
+            font-size: 0.8em;
             text-align: center;
-            box-sizing: border-box;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -162,15 +162,16 @@
         
         .filter-btn.active { border-color: var(--hfs-red); background: var(--hfs-light-red); }
 
+        /* JAVÍTOTT RÁCS: Alacsonyabb fejléc sáv */
         .calendar-grid { 
-    display: grid; 
-    grid-template-columns: repeat(7, 1fr); 
-    /* A 1fr helyett adj meg egy fix pixelt (pl. 150px) vagy auto-t */
-    grid-auto-rows: minmax(150px, auto); 
-    gap: 1px; 
-    background: var(--border-color); 
-    width: 100%;
-}
+            display: grid; 
+            grid-template-columns: repeat(7, 1fr); 
+            grid-template-rows: 32px repeat(6, 1fr); /* 45px-ről 32px-re csökkentve */
+            gap: 1px; 
+            background: var(--border-color); 
+            flex: 1; 
+            width: 100%;
+        }
         
         .weekday { 
             background: var(--hfs-red); 
@@ -179,13 +180,13 @@
             align-items: center; 
             justify-content: center; 
             font-weight: bold; 
-            font-size: 0.85em; 
+            font-size: 0.75em; /* Kisebb betű a keskenyebb sávhoz */
             text-transform: uppercase;
         }
         
         .day { 
             background: var(--card-bg); 
-            padding: 8px; 
+            padding: 6px; 
             display: flex;
             flex-direction: column;
             box-sizing: border-box;
@@ -193,51 +194,51 @@
         }
 
         .empty-day-post { background-color: var(--empty-gray); }
-        .day-number { font-weight: bold; color: var(--text-color); opacity: 0.5; font-size: 0.9em; margin-bottom: 2px; }
+        .day-number { font-weight: bold; color: var(--text-color); opacity: 0.5; font-size: 0.85em; margin-bottom: 2px; }
         .today { background: var(--today-bg) !important; box-shadow: inset 0 0 0 2px var(--hfs-red); }
 
         .event-card { 
             background-color: var(--hfs-light-red);
-            padding: 6px; border-radius: 5px; font-size: 0.75em; 
+            padding: 5px; border-radius: 4px; font-size: 0.7em; 
             color: var(--event-text); 
-            border-left: 4px solid var(--hfs-red);
-            margin-bottom: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            border-left: 3px solid var(--hfs-red);
+            margin-bottom: 3px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
         }
-        .event-title { font-weight: bold; display: block; margin-bottom: 4px; font-size: 0.95em; }
+        .event-title { font-weight: bold; display: block; margin-bottom: 3px; font-size: 0.9em; }
 
         .person-tag { 
-            padding: 3px 6px; 
-            border-radius: 4px; 
-            font-size: 0.9em; 
+            padding: 2px 5px; 
+            border-radius: 3px; 
+            font-size: 0.85em; 
             font-weight: 700;
             display: flex; 
             align-items: center; 
-            gap: 4px;
-            margin-top: 3px;
+            gap: 3px;
+            margin-top: 2px;
         }
         
-        .status-biztos { background-color: var(--status-biztos-bg); color: var(--status-biztos-text); border-left: 3px solid var(--status-biztos-border); }
-        .status-talan { background-color: var(--status-talan-bg); color: var(--status-talan-text); border-left: 3px solid var(--status-talan-border); }
+        .status-biztos { background-color: var(--status-biztos-bg); color: var(--status-biztos-text); border-left: 2px solid var(--status-biztos-border); }
+        .status-talan { background-color: var(--status-talan-bg); color: var(--status-talan-text); border-left: 2px solid var(--status-talan-border); }
 
-        .theme-switch-wrapper { margin-top: auto; padding-top: 10px; display: flex; align-items: center; gap: 10px; font-size: 0.85em; }
-        .theme-switch { position: relative; display: inline-block; width: 44px; height: 22px; }
+        .theme-switch-wrapper { margin-top: auto; padding-top: 10px; display: flex; align-items: center; gap: 10px; font-size: 0.8em; }
+        .theme-switch { position: relative; display: inline-block; width: 40px; height: 20px; }
         .theme-switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
-        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--hfs-red); }
-        input:checked + .slider:before { transform: translateX(22px); }
+        input:checked + .slider:before { transform: translateX(20px); }
     </style>
 </head>
 <body>
 
 <div class="main-layout">
     <aside class="sidebar">
-        <h1 style="color:var(--hfs-red); font-size: 1.4em; margin: 0; letter-spacing: 1px;">HFS 2026</h1>
+        <h1 style="color:var(--hfs-red); font-size: 1.3em; margin: 0; letter-spacing: 1px;">HFS 2026</h1>
         
         <div class="sidebar-card" id="nextEventCard">
             <h3>Következő állomás</h3>
-            <div id="nextEventContent" class="next-event-info">...</div>
+            <div id="nextEventContent" class="next-event-info">Betöltés...</div>
         </div>
 
         <div class="sidebar-card">
@@ -349,7 +350,12 @@
         const next = allWishlistEvents.filter(e => e._endDate >= now).sort((a,b) => a._startDate - b._startDate)[0];
         if (next) {
             const diff = Math.ceil((next._startDate - now) / 86400000);
-            document.getElementById('nextEventContent').innerHTML = `<h2>${next.Event}</h2><p>📅 ${next["Start date"]}</p><p style="color:var(--hfs-red); font-weight:bold">${diff <= 0 ? "MA KEZDŐDIK!" : "Még " + diff + " nap"}</p>`;
+            document.getElementById('nextEventContent').innerHTML = `
+                <h2>${next.Event}</h2>
+                <p>📍 ${next.Location || 'TBD'}</p>
+                <p>📅 ${next["Start date"]}</p>
+                <span class="countdown-timer-sidebar">${diff <= 0 ? "MA KEZDŐDIK! 🔥" : "Még " + diff + " nap"}</span>
+            `;
         }
     }
 
@@ -389,6 +395,7 @@
 
     function setupMonthSelect() {
         const sel = document.getElementById('monthSelect');
+        sel.innerHTML = '';
         mNames.forEach((m, i) => {
             const opt = document.createElement('option'); opt.value = i; opt.textContent = m;
             if(i === currentMonthIdx) opt.selected = true;
