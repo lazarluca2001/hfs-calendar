@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HFS Tour Stats 2026</title>
+    <style>
+        :root {
+            --hfs-red: #800000;
+            --hfs-light-red: #fff0f0;
+            --bg-color: #f4f4f4;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-color: #dddddd;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #0a0a0a;
+            --card-bg: #1a1a1a;
+            --text-color: #f0f0f0;
+            --border-color: #333333;
+            --hfs-red: #ff4d4d;
+            --hfs-light-red: #2a1515;
+        }
+
+        body {
+            margin: 0; font-family: 'Segoe UI', sans-serif;
+            background: var(--bg-color); color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+
+        .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+
+        .header { text-align: center; margin-bottom: 40px; }
+        .header h1 { color: var(--hfs-red); text-transform: uppercase; letter-spacing: 2px; }
+
+        /* Tagválasztó rács */
+        .member-selector {
+            display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin-bottom: 40px;
+        }
+
+        .member-card {
+            background: var(--card-bg);
+            padding: 15px 25px;
+            border-radius: 15px;
+            border: 2px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex; align-items: center; gap: 10px;
+            font-weight: bold;
+        }
+
+        .member-card:hover { border-color: var(--hfs-red); transform: translateY(-3px); }
+        .member-card.active { border-color: var(--hfs-red); background: var(--hfs-light-red); }
+
+        /* Statisztikai kártyák */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px; margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 20px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .stat-card h2 { margin: 0; font-size: 2.5em; color: var(--hfs-red); }
+        .stat-card p { margin: 5px 0 0; opacity: 0.7; text-transform: uppercase; font-size: 0.8em; font-weight: bold; }
+
+        /* Lista nézet */
+        .top-locations {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .location-row {
+            display: flex; justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .location-row:last-child { border: none; }
+
+        .nav-links {
+            margin-top: 40px; display: flex; justify-content: center; gap: 20px;
+        }
+
+        .btn {
+            padding: 10px 25px; border-radius: 30px;
+            text-decoration: none; font-weight: bold;
+            background: var(--hfs-red); color: white;
+            transition: opacity 0.2s;
+        }
+
+        #noData { text-align: center; padding: 40px; opacity: 0.5; font-style: italic; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Tour Statisztikák 2026</h1>
+    </div>
+
+    <div class="member-selector" id="memberSelector"></div>
+
+    <div id="statsContent" style="display: none;">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h2 id="totalEvents">0</h2>
+                <p>Eseményen részt vett</p>
+            </div>
+            <div class="stat-card">
+                <h2 id="totalDays">0</h2>
+                <p>Nap utazással töltve</p>
+            </div>
+            <div class="stat-card">
+                <h2 id="confirmedRatio">0%</h2>
+                <p>Biztos részvételi arány</p>
+            </div>
+        </div>
+
+        <div class="top-locations">
+            <h3 style="margin-top: 0; color: var(--hfs-red);">Kedvenc helyszínek</h3>
+            <div id="locationList"></div>
+        </div>
+    </div>
+
+    <div id="noData">Válassz egy tagot a statisztikák megtekintéséhez!</div>
+
+    <div class="nav-links">
+        <a href="index.html" class="btn">⬅ Naptár</a>
+        <a href="map.html" class="btn">🗺 Térkép</a>
+    </div>
+</div>
+
+<script>
+    const wishlistUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDDBNbIkZize7hPMfYPovbLgnIFWNuseLg0mjzDYGhLCwEEiF_-CiXnV76lgg2mvb54QabZ8y3Sork/pub?gid=338581218&single=true&output=csv';
+    const resztvevokMap = { "Csongi": "🌈", "Merci": "🦆", "Mózes": "🦄", "Luca": "🐶", "Zoli": "🕺" };
+    const validStatuses = ["igen", "talán", "talan", "fizetve", "igazolt"];
+    let allEvents = [];
+
+    // Theme betöltése
+    if (localStorage.getItem('theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+
+    async function init() {
+        const res = await fetch(wishlistUrl);
+        const csv = await res.text();
+        const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
+        const headers = rows[3];
+        
+        for(let i = 4; i < rows.length; i++) {
+            let obj = {}; headers.forEach((h, idx) => { if(h) obj[h] = rows[i][idx]; });
+            if(obj.Event) {
+                const s = obj["Start date"].split('.');
+                const e = obj["End date"].split('.');
+                obj._start = new Date(s[0], s[1]-1, s[2]);
+                obj._end = new Date(e[0], e[1]-1, e[2]);
+                obj._duration = Math.ceil((obj._end - obj._start) / 86400000) + 1;
+                allEvents.push(obj);
+            }
+        }
+        renderSelector();
+    }
+
+    function renderSelector() {
+        const container = document.getElementById('memberSelector');
+        Object.keys(resztvevokMap).forEach(name => {
+            const card = document.createElement('div');
+            card.className = 'member-card';
+            card.innerHTML = `${resztvevokMap[name]} ${name}`;
+            card.onclick = () => showStats(name, card);
+            container.appendChild(card);
+        });
+    }
+
+    function showStats(name, element) {
+        document.querySelectorAll('.member-card').forEach(c => c.classList.remove('active'));
+        element.classList.add('active');
+        document.getElementById('noData').style.display = 'none';
+        document.getElementById('statsContent').style.display = 'block';
+
+        const userEvents = allEvents.filter(e => {
+            const status = (e[name] || "").toLowerCase();
+            return validStatuses.some(s => status.includes(s));
+        });
+
+        // Számítások
+        const totalEvents = userEvents.length;
+        const totalDays = userEvents.reduce((acc, curr) => acc + curr._duration, 0);
+        const confirmedEvents = userEvents.filter(e => !e[name].toLowerCase().includes('talan') && !e[name].toLowerCase().includes('talán')).length;
+        const ratio = totalEvents ? Math.round((confirmedEvents / totalEvents) * 100) : 0;
+
+        // Helyszín toplista
+        const locations = {};
+        userEvents.forEach(e => {
+            const loc = e.Location || "Ismeretlen";
+            locations[loc] = (locations[loc] || 0) + 1;
+        });
+        const sortedLocs = Object.entries(locations).sort((a,b) => b[1] - a[1]);
+
+        // Megjelenítés
+        document.getElementById('totalEvents').innerText = totalEvents;
+        document.getElementById('totalDays').innerText = totalDays;
+        document.getElementById('confirmedRatio').innerText = ratio + "%";
+
+        const listContainer = document.getElementById('locationList');
+        listContainer.innerHTML = sortedLocs.map(([loc, count]) => `
+            <div class="location-row">
+                <span>📍 ${loc}</span>
+                <b>${count}x</b>
+            </div>
+        `).join('');
+    }
+
+    init();
+</script>
+</body>
+</html>
