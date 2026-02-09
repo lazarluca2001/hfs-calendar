@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Judge Sheet - Newcomer Leader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <style>
+        /* Teljesen letisztult csúszka stílus visszajelzés nélkül */
+        input[type=range] { -webkit-appearance: none; background: #e5e7eb; height: 12px; border-radius: 6px; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 24px; width: 24px; border-radius: 50%; background: #3b82f6; cursor: pointer; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen pb-24">
+
+    <div class="max-w-md mx-auto p-6">
+        <header class="mb-8 text-center">
+            <h1 id="roundTitle" class="text-2xl font-bold text-gray-800">Prelim: Newcomer Leader</h1>
+            <p class="text-sm text-gray-500">Húzd a csúszkát az értékeléshez</p>
+        </header>
+
+        <div class="flex justify-center gap-2 mb-6">
+            <button onclick="switchMode('prelim')" class="bg-gray-200 px-3 py-1 rounded text-xs">Prelim mód</button>
+            <button onclick="switchMode('final')" class="bg-gray-200 px-3 py-1 rounded text-xs">Final mód</button>
+        </div>
+
+        <div id="competitorList" class="space-y-6">
+            </div>
+
+        <div class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t flex justify-center">
+            <button onclick="finalize()" class="w-full max-w-xs bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-95">
+                FINALIZE & SUBMIT
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Versenyzők listája (Newcomer Leaders)
+        const leaders = ["101", "102", "103", "104", "105", "106", "107", "108"];
+        let currentMode = 'prelim';
+
+        const competitorList = document.getElementById('competitorList');
+
+        function renderCompetitors() {
+            competitorList.innerHTML = '';
+            
+            if (currentMode === 'prelim') {
+                leaders.forEach(id => {
+                    competitorList.innerHTML += `
+                        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex items-center gap-4">
+                            <span class="text-xl font-bold w-12">#${id}</span>
+                            <input type="range" min="0" max="100" value="50" 
+                                   class="judge-slider flex-1" 
+                                   data-id="${id}" 
+                                   onchange="this.dataset.touched=true">
+                        </div>`;
+                });
+            } else {
+                // Final mód: Drag and Drop lista
+                competitorList.innerHTML = `<p class="text-center text-sm mb-4 text-blue-600">Állítsd sorrendbe a versenyzőket (1. hely legfelül)</p>
+                                            <div id="dragList" class="space-y-2"></div>`;
+                const dragList = document.getElementById('dragList');
+                leaders.forEach((id, index) => {
+                    dragList.innerHTML += `
+                        <div class="bg-white p-4 rounded-lg shadow border-2 border-blue-100 flex items-center gap-4 cursor-move" data-id="${id}">
+                            <span class="rank-number font-bold text-blue-500">${index + 1}.</span>
+                            <span class="text-lg font-mono">Competitor #${id}</span>
+                        </div>`;
+                });
+                new Sortable(dragList, {
+                    animation: 150,
+                    onEnd: function() {
+                        document.querySelectorAll('.rank-number').forEach((el, i) => el.innerText = (i + 1) + ".");
+                    }
+                });
+            }
+        }
+
+        function switchMode(mode) {
+            currentMode = mode;
+            document.getElementById('roundTitle').innerText = mode === 'prelim' ? 'Prelim: Newcomer Leader' : 'Final: Newcomer Leader';
+            renderCompetitors();
+        }
+
+        function finalize() {
+            if (currentMode === 'prelim') {
+                const sliders = document.querySelectorAll('.judge-slider');
+                const untouched = Array.from(sliders).filter(s => !s.dataset.touched);
+                
+                if (untouched.length > 0) {
+                    alert(`Hiba! Még ${untouched.length} versenyzőt nem pontoztál.`);
+                    return;
+                }
+                
+                const data = Array.from(sliders).map(s => ({
+                    id: s.dataset.id,
+                    score: calculatePoints(s.value)
+                }));
+                console.log("Submit Prelim:", data);
+                alert("Prelim adatok elküldve!");
+            } else {
+                const order = Array.from(document.querySelectorAll('#dragList > div')).map(el => el.dataset.id);
+                console.log("Submit Final (Relative Placement):", order);
+                alert("Döntő sorrend elküldve!");
+            }
+        }
+
+        function calculatePoints(val) {
+            if (val >= 90) return 10;
+            if (val >= 70) return 4.5;
+            if (val >= 50) return 4.3;
+            if (val >= 30) return 4.2;
+            return 0;
+        }
+
+        // Kezdeti renderelés
+        renderCompetitors();
+    </script>
+</body>
+</html>
